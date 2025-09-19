@@ -3,63 +3,21 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Kaboom Test – resilient</title>
-  <style>
-    html,body{margin:0;padding:0;height:100%;background:#1e1e1e;color:#eee;font-family:system-ui,Arial}
-    #log{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:24px}
-    pre{white-space:pre-wrap;word-break:break-word}
-  </style>
+  <title>Kaboom Test</title>
 </head>
 <body>
-<div id="log"><pre>booting…</pre></div>
-<script>
-(async () => {
-  const log = (m) => document.querySelector("#log pre").textContent = m;
+<script type="module">
+  import kaboom from "https://cdn.jsdelivr.net/npm/kaboom@3000/dist/kaboom.mjs";
 
-  // try a few CDNs in order
-  const sources = [
-    "https://cdn.jsdelivr.net/npm/kaboom@3000/dist/kaboom.mjs",
-    "https://unpkg.com/kaboom@3000/dist/kaboom.mjs",
-    // esm.sh bundles to a single module, useful behind strict CDNs
-    "https://esm.sh/kaboom@3000?bundle"
-  ];
-
-  let kaboomModule = null, lastError = null;
-  for (const url of sources) {
-    try {
-      log(`loading kaboom from:\n${url}`);
-      kaboomModule = await import(url);
-      log(`loaded from:\n${url}`);
-      break;
-    } catch (err) {
-      lastError = err;
-    }
-  }
-
-  if (!kaboomModule) {
-    log(`❌ failed to load kaboom from all CDNs.
-
-Tip: an adblocker / privacy extension may be blocking CDNs.
-Allow one of:
-- cdn.jsdelivr.net
-- unpkg.com
-- esm.sh
-
-Error:
-${String(lastError)}
-`);
-    return;
-  }
-
-  const kaboom = kaboomModule.default || kaboomModule;
-  const k = kaboom({ background: [30,30,30], pixelDensity: devicePixelRatio });
-
-  // draw a box to prove life support is nominal
+  const k = kaboom({ background: [30, 30, 30] });
   const { add, pos, rect, color } = k;
-  add([ pos(120, 80), rect(160, 120), color(255, 60, 60) ]);
 
-  document.getElementById("log").remove();
-})();
+  // just add a single red square
+  add([
+    pos(120, 80),
+    rect(100, 100),
+    color(255, 0, 0),
+  ]);
 </script>
 </body>
 </html>
