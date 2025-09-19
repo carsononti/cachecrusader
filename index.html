@@ -1,63 +1,85 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Kaboom Test</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Kaboom Debug</title>
 </head>
 <body>
-<script type="module">
-  import kaboom from "https://cdn.jsdelivr.net/npm/kaboom@3000/dist/kaboom.mjs";
+    <script type="module">
+        import kaboom from "https://cdn.jsdelivr.net/npm/kaboom@3000/dist/kaboom.mjs";
 
-// Input handling and basic player movement
+        kaboom({
+            background: [32, 32, 32],
+        })
 
-// Start kaboom
-kaboom()
+        // add paddles
+        add([
+            pos(40, 0),
+            rect(20, 80),
+            outline(4),
+            anchor("center"),
+            area(),
+            "paddle",
+        ])
 
-// Load assets
-loadSprite("bean", "/sprites/bean.png")
+        add([
+            pos(width() - 40, 0),
+            rect(20, 80),
+            outline(4),
+            anchor("center"),
+            area(),
+            "paddle",
+        ])
 
-// Define player movement speed (pixels per second)
-const SPEED = 320
+        // move paddles with mouse
+        onUpdate("paddle", (p) => {
+            p.pos.y = mousePos().y
+        })
 
-// Add player game object
-const player = add([
-	sprite("bean"),
-	// center() returns the center point vec2(width() / 2, height() / 2)
-	pos(center()),
-])
+        // score counter
+        let score = 0
 
-// onKeyDown() registers an event that runs every frame as long as user is holding a certain key
-onKeyDown("left", () => {
-	// .move() is provided by pos() component, move by pixels per second
-	player.move(-SPEED, 0)
-})
+        add([
+            text(score),
+            pos(center()),
+            anchor("center"),
+            z(50),
+            { update() { this.text = score } },
+        ])
 
-onKeyDown("right", () => {
-	player.move(SPEED, 0)
-})
+        // ball
+        let speed = 480
 
-onKeyDown("up", () => {
-	player.move(0, -SPEED)
-})
+        const ball = add([
+            pos(center()),
+            circle(16),
+            outline(4),
+            area({ shape: new Rect(vec2(-16), 32, 32) }),
+            { vel: Vec2.fromAngle(rand(-20, 20)) },
+        ])
 
-onKeyDown("down", () => {
-	player.move(0, SPEED)
-})
+        // move ball, bounce it when touche horizontal edges, respawn when touch vertical edges
+        ball.onUpdate(() => {
+            ball.move(ball.vel.scale(speed))
+            if (ball.pos.x < 0 || ball.pos.x > width()) {
+                score = 0
+                ball.pos = center()
+                ball.vel = Vec2.fromAngle(rand(-20, 20))
+                speed = 320
+            }
+            if (ball.pos.y < 0 || ball.pos.y > height()) {
+                ball.vel.y = -ball.vel.y
+            }
+        })
 
-// onClick() registers an event that runs once when left mouse is clicked
-onClick(() => {
-	// .moveTo() is provided by pos() component, changes the position
-	player.moveTo(mousePos())
-})
+        // bounce when touch paddle
+        ball.onCollide("paddle", (p) => {
+            speed += 60
+            ball.vel = Vec2.fromAngle(ball.pos.angle(p.pos))
+            score++
+        })
 
-add([
-	// text() component is similar to sprite() but renders text
-	text("Press arrow keys", { width: width() / 2 }),
-	pos(12, 12),
-])
-
-  
-</script>
+    </script>
 </body>
 </html>
