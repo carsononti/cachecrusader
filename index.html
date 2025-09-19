@@ -88,12 +88,6 @@
                     },
                 },
             },
-            "sword": {
-                "x": 322,
-                "y": 81,
-                "width": 12,
-                "height": 30,
-            },
             "wall": {
                 "x": 16,
                 "y": 16,
@@ -252,14 +246,6 @@
             tile(),
         ], 2, 2)
 
-        const sword = player.add([
-            pos(-4, 9),
-            sprite("sword"),
-            anchor("bot"),
-            rotate(0),
-            spin(),
-        ])
-
         // TODO: z
         map.spawn([
             sprite("ogre"),
@@ -303,9 +289,6 @@
                     interacted = true
                 }
             }
-            if (!interacted) {
-                sword.spin()
-            }
         }
 
         onKeyPress("space", interact)
@@ -330,16 +313,12 @@
 
         onKeyDown("right", () => {
             player.flipX = false
-            sword.flipX = false
             player.move(SPEED, 0)
-            sword.pos = vec2(-4, 9)
         })
 
         onKeyDown("left", () => {
             player.flipX = true
-            sword.flipX = true
             player.move(-SPEED, 0)
-            sword.pos = vec2(4, 9)
         })
 
         onKeyDown("up", () => {
@@ -355,12 +334,8 @@
         onGamepadStick("left", (v) => {
             if (v.x < 0) {
                 player.flipX = true
-                sword.flipX = true
-                sword.pos = vec2(4, 9)
             } else if (v.x > 0) {
                 player.flipX = false
-                sword.flipX = false
-                sword.pos = vec2(-4, 9)
             }
             player.move(v.scale(SPEED))
             if (v.isZero()) {
