@@ -10,6 +10,9 @@
         :root {
             --pad: 14px;
             --btn: 64px;
+            --safe-left: env(safe-area-inset-left, 0px);
+            --safe-right: env(safe-area-inset-right, 0px);
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
         }
 
         html, body {
@@ -18,7 +21,6 @@
             background: #0b1b2b;
         }
 
-        /* Canvas host */
         #game {
             position: fixed;
             inset: 0;
@@ -30,23 +32,12 @@
                 image-rendering: pixelated;
             }
 
-        :root {
-            --pad: 14px;
-            --btn: 64px;
-            --safe-left: env(safe-area-inset-left, 0px);
-            --safe-right: env(safe-area-inset-right, 0px);
-            --safe-bottom: env(safe-area-inset-bottom, 0px);
-        }
-
-        /* HUD / Controls */
         .hud {
             position: fixed;
             inset: 0;
             pointer-events: none;
             z-index: 10;
         }
-        /* ensure above canvas */
-
 
         .controls {
             position: absolute;
@@ -55,7 +46,7 @@
             display: grid;
             grid-template-columns: var(--btn) var(--btn) var(--btn);
             grid-template-rows: var(--btn) var(--btn) var(--btn);
-            gap: 10px;
+            gap: 8px;
             pointer-events: none;
             -webkit-user-select: none;
             user-select: none;
@@ -66,18 +57,20 @@
                 pointer-events: auto;
                 width: var(--btn);
                 height: var(--btn);
-                border-radius: 10px;
-                border: 2px solid #3a4a5a;
-                background: #142130;
-                color: #bcd0e6;
-                font: 700 18px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-                box-shadow: 0 2px 0 #243447 inset, 0 0 12px rgba(0,0,0,.35);
+                border-radius: 3px; /* small radius = blocky */
+                border: 3px solid #222; /* thick pixel border */
+                background: #444; /* flat gray fill */
+                color: #fff;
+                font: bold 20px monospace; /* monospace = retro */
+                text-shadow: 1px 1px 0 #000; /* pixel-style text */
+                image-rendering: pixelated;
                 touch-action: none;
             }
 
                 .controls button:active {
-                    transform: translateY(1px);
-                    background: #17283a;
+                    background: #222;
+                    border-color: #ffcc00; /* golden highlight on press */
+                    color: #ffcc00;
                 }
 
         .btn-up {
@@ -108,14 +101,21 @@
                 pointer-events: auto;
                 width: calc(var(--btn) * 1.2);
                 height: calc(var(--btn) * 1.2);
-                border-radius: 50%;
-                border: 2px solid #3a4a5a;
-                background: #13223a;
-                color: #9cf;
-                font: 700 18px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
-                box-shadow: 0 2px 0 #233 inset, 0 0 16px rgba(0,0,0,.5);
+                border-radius: 3px;
+                border: 3px solid #222;
+                background: #800; /* deep red fill */
+                color: #fff;
+                font: bold 20px monospace;
+                text-shadow: 1px 1px 0 #000;
+                image-rendering: pixelated;
                 touch-action: none;
             }
+
+                .action-wrap button:active {
+                    background: #c00;
+                    border-color: #ffcc00;
+                    color: #ffcc00;
+                }
 
         @media (max-width: 420px) {
             :root {
@@ -124,13 +124,13 @@
             }
         }
 
-        /* -------- iOS anti-select / anti-callout / anti-flash -------- */
+        /* iOS quirks fix */
         html, body, #game, #game canvas,
         .hud, .controls, .controls button,
         .action-wrap, .action-wrap button {
             -webkit-user-select: none;
             user-select: none;
-            -webkit-touch-callout: none; /* no Copy / Look Up */
+            -webkit-touch-callout: none;
         }
 
         * {
@@ -142,6 +142,7 @@
             user-drag: none;
         }
     </style>
+
 </head>
 <body>
     <div id="game"></div>
