@@ -2,114 +2,22 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>cachecrusader</title>
-  <style>
-    html, body { margin:0; padding:0; height:100%; background:#121212; color:#eee; }
-    * { -webkit-tap-highlight-color: transparent; user-select:none; -webkit-user-select:none; }
-  </style>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Kaboom Test</title>
 </head>
 <body>
 <script type="module">
-  // ✅ Pin the version so the CDN serves a real ES module with proper headers
   import kaboom from "https://cdn.jsdelivr.net/npm/kaboom@3000.2.1/dist/kaboom.mjs";
 
-  const k = kaboom({ background: [18,18,18], pixelDensity: devicePixelRatio });
-  const { add, addLevel, pos, rect, circle, area, body, anchor, text, color, vec2,
-          onUpdate, onKeyDown, onKeyRelease, onKeyPress, width, height,
-          outline, opacity, fixed, isMouseDown, mousePos } = k;
+  const k = kaboom({ background: [30, 30, 30] });
+  const { add, pos, rect, color } = k;
 
-  // physics
-  const SPEED = 480;
-  const JUMP_VEL = 960;
-  k.setGravity(2400);
-
-  // tiny level using primitives (no external assets)
-  const level = addLevel([
-    "@  ^ $$",
-    "=======",
-  ], {
-    tileWidth: 64,
-    tileHeight: 64,
-    pos: vec2(100, 200),
-    tiles: {
-      "@": () => [ circle(22), color(120,200,255), area(), body(), anchor("bot"), "player" ],
-      "=": () => [ rect(64,24,{radius:6}), color(80,170,90), area(), body({isStatic:true}), anchor("bot") ],
-      "$": () => [ circle(14), color(255,215,0), area(), anchor("bot"), "coin" ],
-      "^": () => [ rect(36,28,{radius:4}), color(220,60,60), area(), anchor("bot"), "danger" ],
-    },
-  });
-
-  const player = level.get("player")[0];
-
-  // HUD
-  let score = 0;
-  const scoreLabel = add([ pos(8,8), text("Score: 0"), anchor("topleft"), fixed() ]);
-  add([ pos(8, height() - 8), text("Touch ◀ ▶ ⤴"), anchor("botleft"), fixed() ]);
-
-  // --- touch controls
-  let moveLeft = false, moveRight = false, jumpQueued = false;
-
-  function makeButton({ x, y, w, h, labelText, onPress, onRelease, anchorPos="center" }) {
-    const btn = add([ pos(x,y), rect(w,h,{radius:10}), area(), outline(2),
-                      color(0,0,0), opacity(0.14), anchor(anchorPos), fixed(),
-                      { isDown:false, onPress, onRelease } ]);
-    add([ text(labelText, { size: Math.min(28, Math.floor(h*0.65)) }),
-          pos(x,y), anchor("center"), fixed() ]);
-
-    k.onMouseDown(() => {
-      if (!btn.isDown && btn.hasPoint(mousePos())) {
-        btn.isDown = true; btn.opacity = 0.28; if (btn.onPress) btn.onPress();
-      }
-    });
-    k.onMouseRelease(() => {
-      if (btn.isDown) {
-        btn.isDown = false; btn.opacity = 0.14; if (btn.onRelease) btn.onRelease();
-      }
-    });
-    onUpdate(() => {
-      if (btn.isDown && !isMouseDown()) {
-        btn.isDown = false; btn.opacity = 0.14; if (btn.onRelease) btn.onRelease();
-      }
-    });
-  }
-
-  const margin = 18, btnW = 72, btnH = 72;
-
-  // left/right
-  makeButton({
-    x: margin + btnW/2, y: height() - margin - btnH/2, w: btnW, h: btnH, labelText: "◀",
-    onPress: () => moveLeft = true, onRelease: () => moveLeft = false,
-  });
-  makeButton({
-    x: margin + btnW + 12 + btnW/2, y: height() - margin - btnH/2, w: btnW, h: btnH, labelText: "▶",
-    onPress: () => moveRight = true, onRelease: () => moveRight = false,
-  });
-
-  // jump
-  makeButton({
-    x: width() - margin - 88/2, y: height() - margin - 88/2, w: 88, h: 88, labelText: "⤴",
-    onPress: () => jumpQueued = true, onRelease: () => {},
-  });
-
-  // keyboard fallback
-  onKeyDown("left", () => moveLeft = true);
-  onKeyRelease("left", () => moveLeft = false);
-  onKeyDown("right", () => moveRight = true);
-  onKeyRelease("right", () => moveRight = false);
-  onKeyPress("space", () => jumpQueued = true);
-
-  // movement
-  onUpdate(() => {
-    if (moveLeft && !moveRight) player.move(-SPEED, 0);
-    else if (moveRight && !moveLeft) player.move(SPEED, 0);
-    if (jumpQueued && player.isGrounded()) player.jump(JUMP_VEL);
-    jumpQueued = false;
-  });
-
-  // collisions
-  player.onCollide("danger", () => { player.pos = level.tile2Pos(0,0); });
-  player.onCollide("coin", (c) => { k.destroy(c); score++; scoreLabel.text = `Score: ${score}`; });
+  // just add a single red square
+  add([
+    pos(120, 80),
+    rect(100, 100),
+    color(255, 0, 0),
+  ]);
 </script>
 </body>
 </html>
