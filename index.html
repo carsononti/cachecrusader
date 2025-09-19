@@ -18,10 +18,10 @@
 
   // try a few CDNs in order
   const sources = [
-    "https://cdn.jsdelivr.net/npm/kaboom@3000.2.1/dist/kaboom.mjs",
-    "https://unpkg.com/kaboom@3000.2.1/dist/kaboom.mjs",
+    "https://cdn.jsdelivr.net/npm/kaboom@3000/dist/kaboom.mjs",
+    "https://unpkg.com/kaboom@3000/dist/kaboom.mjs",
     // esm.sh bundles to a single module, useful behind strict CDNs
-    "https://esm.sh/kaboom@3000.2.1?bundle"
+    "https://esm.sh/kaboom@3000?bundle"
   ];
 
   let kaboomModule = null, lastError = null;
