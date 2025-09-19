@@ -1,366 +1,325 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width,initial-scale=1" />
-    <title>Kaboom Demo</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <title>Kaboom Demo — Touch Controls</title>
+  <style>
+    :root { --pad: 14px; --btn: 64px; }
+    html, body { margin: 0; height: 100%; background: #000; }
+    /* Canvas wraps the whole screen; controls float above it */
+    #game { position: fixed; inset: 0; }
+
+    /* HUD / Controls */
+    .hud {
+      position: fixed;
+      inset: 0;
+      pointer-events: none; /* only buttons capture */
+    }
+
+    .controls {
+      position: absolute;
+      left: var(--pad);
+      bottom: var(--pad);
+      display: grid;
+      grid-template-columns: var(--btn) var(--btn) var(--btn);
+      grid-template-rows: var(--btn) var(--btn) var(--btn);
+      gap: 10px;
+      pointer-events: none;
+      opacity: 0.95;
+      -webkit-user-select: none;
+      user-select: none;
+      touch-action: none;
+    }
+
+    .controls button {
+      pointer-events: auto;
+      width: var(--btn);
+      height: var(--btn);
+      border-radius: 12px;
+      border: 2px solid #444;
+      background: #111;
+      color: #eee;
+      font: 700 18px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      box-shadow: 0 2px 0 #333 inset, 0 0 12px rgba(0,0,0,.4);
+      touch-action: none;
+    }
+    .controls button:active { transform: translateY(1px); background:#181818; }
+
+    /* Layout the D-pad shape */
+    .btn-up    { grid-area: 1 / 2; }
+    .btn-left  { grid-area: 2 / 1; }
+    .btn-down  { grid-area: 3 / 2; }
+    .btn-right { grid-area: 2 / 3; }
+
+    /* Action button on the right */
+    .action-wrap {
+      position: absolute;
+      right: var(--pad);
+      bottom: calc(var(--pad) + 10px);
+      pointer-events: none;
+      touch-action: none;
+    }
+    .action-wrap button {
+      pointer-events: auto;
+      width: calc(var(--btn) * 1.2);
+      height: calc(var(--btn) * 1.2);
+      border-radius: 50%;
+      border: 2px solid #444;
+      background: #112;
+      color: #9cf;
+      font: 700 18px/1 system-ui, -apple-system, Segoe UI, Roboto, Arial;
+      box-shadow: 0 2px 0 #233 inset, 0 0 16px rgba(0,0,0,.5);
+      touch-action: none;
+    }
+
+    /* Hide controls on very narrow screens? Nah—keep them. But allow scaling if needed */
+    @media (max-width: 420px) {
+      :root { --btn: 56px; --pad: 10px; }
+    }
+  </style>
 </head>
 <body>
-    <script type="module">
-        import kaboom from "https://cdn.jsdelivr.net/npm/kaboom@3000/dist/kaboom.mjs";
+  <!-- Kaboom mounts into this fixed container -->
+  <div id="game"></div>
 
-        kaboom({
-            scale: 4,
-            background: [0, 0, 0],
-        })
+  <!-- HUD overlay with on-screen controls -->
+  <div class="hud" aria-hidden="false">
+    <div class="controls" id="dpad" role="group" aria-label="Movement">
+      <button class="btn-up"    data-dir="up"    aria-label="Up">▲</button>
+      <button class="btn-left"  data-dir="left"  aria-label="Left">◀</button>
+      <button class="btn-down"  data-dir="down"  aria-label="Down">▼</button>
+      <button class="btn-right" data-dir="right" aria-label="Right">▶</button>
+    </div>
+    <div class="action-wrap">
+      <button id="btn-action" aria-label="Action">A</button>
+    </div>
+  </div>
 
-        // https://0x72.itch.io/dungeontileset-ii
-        loadSpriteAtlas("sprites/dungeon.png", {
-            "hero": {
-                "x": 128,
-                "y": 196,
-                "width": 144,
-                "height": 28,
-                "sliceX": 9,
-                "anims": {
-                    "idle": {
-                        "from": 0,
-                        "to": 3,
-                        "speed": 3,
-                        "loop": true,
-                    },
-                    "run": {
-                        "from": 4,
-                        "to": 7,
-                        "speed": 10,
-                        "loop": true,
-                    },
-                    "hit": 8,
-                },
-            },
-            "ogre": {
-                "x": 16,
-                "y": 320,
-                "width": 256,
-                "height": 32,
-                "sliceX": 8,
-                "anims": {
-                    "idle": {
-                        "from": 0,
-                        "to": 3,
-                        "speed": 3,
-                        "loop": true,
-                    },
-                    "run": {
-                        "from": 4,
-                        "to": 7,
-                        "speed": 10,
-                        "loop": true,
-                    },
-                },
-            },
-            "floor": {
-                "x": 16,
-                "y": 64,
-                "width": 48,
-                "height": 48,
-                "sliceX": 3,
-                "sliceY": 3,
-            },
-            "chest": {
-                "x": 304,
-                "y": 304,
-                "width": 48,
-                "height": 16,
-                "sliceX": 3,
-                "anims": {
-                    "open": {
-                        "from": 0,
-                        "to": 2,
-                        "speed": 20,
-                        "loop": false,
-                    },
-                    "close": {
-                        "from": 2,
-                        "to": 0,
-                        "speed": 20,
-                        "loop": false,
-                    },
-                },
-            },
-            "wall": {
-                "x": 16,
-                "y": 16,
-                "width": 16,
-                "height": 16,
-            },
-            "wall_top": {
-                "x": 16,
-                "y": 0,
-                "width": 16,
-                "height": 16,
-            },
-            "wall_left": {
-                "x": 16,
-                "y": 128,
-                "width": 16,
-                "height": 16,
-            },
-            "wall_right": {
-                "x": 0,
-                "y": 128,
-                "width": 16,
-                "height": 16,
-            },
-            "wall_topleft": {
-                "x": 32,
-                "y": 128,
-                "width": 16,
-                "height": 16,
-            },
-            "wall_topright": {
-                "x": 48,
-                "y": 128,
-                "width": 16,
-                "height": 16,
-            },
-            "wall_botleft": {
-                "x": 32,
-                "y": 144,
-                "width": 16,
-                "height": 16,
-            },
-            "wall_botright": {
-                "x": 48,
-                "y": 144,
-                "width": 16,
-                "height": 16,
-            },
-        })
+  <script type="module">
+    import kaboom from "https://cdn.jsdelivr.net/npm/kaboom@3000/dist/kaboom.mjs";
 
-        // Can also load from external JSON url
-        // loadSpriteAtlas("/sprites/dungeon.png", "/sprites/dungeon.json")
+    // Mount Kaboom into #game so the canvas sits under our HUD
+    kaboom({
+      root: document.querySelector("#game"),
+      scale: 4,
+      background: [0, 0, 0],
+    });
 
-        // floor
-        addLevel([
-            "xxxxxxxxxx",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-        ], {
-            tileWidth: 16,
-            tileHeight: 16,
-            tiles: {
-                " ": () => [
-                    sprite("floor", { frame: ~~rand(0, 8) }),
-                ],
-            },
-        })
-
-        // objects
-        const map = addLevel([
-            "tttttttttt",
-            "cwwwwwwwwd",
-            "l        r",
-            "l        r",
-            "l        r",
-            "l      $ r",
-            "l        r",
-            "l $      r",
-            "attttttttb",
-            "wwwwwwwwww",
-        ], {
-            tileWidth: 16,
-            tileHeight: 16,
-            tiles: {
-                "$": () => [
-                    sprite("chest"),
-                    area(),
-                    body({ isStatic: true }),
-                    tile({ isObstacle: true }),
-                    { opened: false },
-                    "chest",
-                ],
-                "a": () => [
-                    sprite("wall_botleft"),
-                    area({ shape: new Rect(vec2(0), 4, 16) }),
-                    body({ isStatic: true }),
-                    tile({ isObstacle: true }),
-                ],
-                "b": () => [
-                    sprite("wall_botright"),
-                    area({ shape: new Rect(vec2(12, 0), 4, 16) }),
-                    body({ isStatic: true }),
-                    tile({ isObstacle: true }),
-                ],
-                "c": () => [
-                    sprite("wall_topleft"),
-                    area(),
-                    body({ isStatic: true }),
-                    tile({ isObstacle: true }),
-                ],
-                "d": () => [
-                    sprite("wall_topright"),
-                    area(),
-                    body({ isStatic: true }),
-                    tile({ isObstacle: true }),
-                ],
-                "w": () => [
-                    sprite("wall"),
-                    area(),
-                    body({ isStatic: true }),
-                    tile({ isObstacle: true }),
-                ],
-                "t": () => [
-                    sprite("wall_top"),
-                    area({ shape: new Rect(vec2(0, 12), 16, 4) }),
-                    body({ isStatic: true }),
-                    tile({ isObstacle: true }),
-                ],
-                "l": () => [
-                    sprite("wall_left"),
-                    area({ shape: new Rect(vec2(0), 4, 16) }),
-                    body({ isStatic: true }),
-                    tile({ isObstacle: true }),
-                ],
-                "r": () => [
-                    sprite("wall_right"),
-                    area({ shape: new Rect(vec2(12, 0), 4, 16) }),
-                    body({ isStatic: true }),
-                    tile({ isObstacle: true }),
-                ],
-            },
-        })
-
-        const player = map.spawn([
-            sprite("hero", { anim: "idle" }),
-            area({ shape: new Rect(vec2(0, 6), 12, 12) }),
-            body(),
-            anchor("center"),
-            tile(),
-        ], 2, 2)
-
-        // TODO: z
-        map.spawn([
-            sprite("ogre"),
-            anchor("bot"),
-            area({ scale: 0.5 }),
-            body({ isStatic: true }),
-            tile({ isObstacle: true }),
-        ], 5, 4)
-
-        function spin() {
-            let spinning = false
-            return {
-                id: "spin",
-                update() {
-                    if (spinning) {
-                        this.angle += 1200 * dt()
-                        if (this.angle >= 360) {
-                            this.angle = 0
-                            spinning = false
-                        }
-                    }
-                },
-                spin() {
-                    spinning = true
-                },
-            }
+    // ===== Sprites / Atlas =====
+    loadSpriteAtlas("sprites/dungeon.png", {
+      "hero": {
+        "x": 128, "y": 196, "width": 144, "height": 28, "sliceX": 9,
+        "anims": {
+          "idle": { "from": 0, "to": 3, "speed": 3,  "loop": true },
+          "run":  { "from": 4, "to": 7, "speed": 10, "loop": true },
+          "hit":  8
         }
-
-        function interact() {
-            let interacted = false
-            for (const col of player.getCollisions()) {
-                const c = col.target
-                if (c.is("chest")) {
-                    if (c.opened) {
-                        c.play("close")
-                        c.opened = false
-                    } else {
-                        c.play("open")
-                        c.opened = true
-                    }
-                    interacted = true
-                }
-            }
+      },
+      "ogre": {
+        "x": 16, "y": 320, "width": 256, "height": 32, "sliceX": 8,
+        "anims": {
+          "idle": { "from": 0, "to": 3, "speed": 3,  "loop": true },
+          "run":  { "from": 4, "to": 7, "speed": 10, "loop": true }
         }
-
-        onKeyPress("space", interact)
-
-        const SPEED = 120
-
-        const dirs = {
-            "left": LEFT,
-            "right": RIGHT,
-            "up": UP,
-            "down": DOWN,
+      },
+      "floor": { "x": 16, "y": 64, "width": 48, "height": 48, "sliceX": 3, "sliceY": 3 },
+      "chest": {
+        "x": 304, "y": 304, "width": 48, "height": 16, "sliceX": 3,
+        "anims": {
+          "open":  { "from": 0, "to": 2, "speed": 20, "loop": false },
+          "close": { "from": 2, "to": 0, "speed": 20, "loop": false }
         }
+      },
+      "wall":          { "x": 16, "y": 16,  "width": 16, "height": 16 },
+      "wall_top":      { "x": 16, "y": 0,   "width": 16, "height": 16 },
+      "wall_left":     { "x": 16, "y": 128, "width": 16, "height": 16 },
+      "wall_right":    { "x": 0,  "y": 128, "width": 16, "height": 16 },
+      "wall_topleft":  { "x": 32, "y": 128, "width": 16, "height": 16 },
+      "wall_topright": { "x": 48, "y": 128, "width": 16, "height": 16 },
+      "wall_botleft":  { "x": 32, "y": 144, "width": 16, "height": 16 },
+      "wall_botright": { "x": 48, "y": 144, "width": 16, "height": 16 }
+    });
 
-        player.onUpdate(() => {
-            camPos(player.pos)
-        })
+    // ===== Levels =====
+    addLevel([
+      "xxxxxxxxxx",
+      "          ",
+      "          ",
+      "          ",
+      "          ",
+      "          ",
+      "          ",
+      "          ",
+      "          ",
+      "          ",
+    ], {
+      tileWidth: 16,
+      tileHeight: 16,
+      tiles: {
+        " ": () => [ sprite("floor", { frame: ~~rand(0, 8) }) ],
+      },
+    });
 
-        player.onPhysicsResolve(() => {
-            // Set the viewport center to player.pos
-            camPos(player.pos)
-        })
+    const map = addLevel([
+      "tttttttttt",
+      "cwwwwwwwwd",
+      "l        r",
+      "l        r",
+      "l        r",
+      "l      $ r",
+      "l        r",
+      "l $      r",
+      "attttttttb",
+      "wwwwwwwwww",
+    ], {
+      tileWidth: 16,
+      tileHeight: 16,
+      tiles: {
+        "$": () => [
+          sprite("chest"),
+          area(),
+          body({ isStatic: true }),
+          tile({ isObstacle: true }),
+          { opened: false },
+          "chest",
+        ],
+        "a": () => [
+          sprite("wall_botleft"),
+          area({ shape: new Rect(vec2(0), 4, 16) }),
+          body({ isStatic: true }),
+          tile({ isObstacle: true }),
+        ],
+        "b": () => [
+          sprite("wall_botright"),
+          area({ shape: new Rect(vec2(12, 0), 4, 16) }),
+          body({ isStatic: true }),
+          tile({ isObstacle: true }),
+        ],
+        "c": () => [ sprite("wall_topleft"),  area(), body({ isStatic: true }), tile({ isObstacle: true }) ],
+        "d": () => [ sprite("wall_topright"), area(), body({ isStatic: true }), tile({ isObstacle: true }) ],
+        "w": () => [ sprite("wall"),          area(), body({ isStatic: true }), tile({ isObstacle: true }) ],
+        "t": () => [
+          sprite("wall_top"),
+          area({ shape: new Rect(vec2(0, 12), 16, 4) }),
+          body({ isStatic: true }),
+          tile({ isObstacle: true }),
+        ],
+        "l": () => [
+          sprite("wall_left"),
+          area({ shape: new Rect(vec2(0), 4, 16) }),
+          body({ isStatic: true }),
+          tile({ isObstacle: true }),
+        ],
+        "r": () => [
+          sprite("wall_right"),
+          area({ shape: new Rect(vec2(12, 0), 4, 16) }),
+          body({ isStatic: true }),
+          tile({ isObstacle: true }),
+        ],
+      },
+    });
 
-        onKeyDown("right", () => {
-            player.flipX = false
-            player.move(SPEED, 0)
-        })
+    const player = map.spawn([
+      sprite("hero", { anim: "idle" }),
+      area({ shape: new Rect(vec2(0, 6), 12, 12) }),
+      body(),
+      anchor("center"),
+      tile(),
+    ], 2, 2);
 
-        onKeyDown("left", () => {
-            player.flipX = true
-            player.move(-SPEED, 0)
-        })
+    map.spawn([
+      sprite("ogre"),
+      anchor("bot"),
+      area({ scale: 0.5 }),
+      body({ isStatic: true }),
+      tile({ isObstacle: true }),
+    ], 5, 4);
 
-        onKeyDown("up", () => {
-            player.move(0, -SPEED)
-        })
+    // ===== Interaction (used by Action button) =====
+    function interact() {
+      for (const col of player.getCollisions()) {
+        const c = col.target;
+        if (c.is("chest")) {
+          if (c.opened) {
+            c.play("close");
+            c.opened = false;
+          } else {
+            c.play("open");
+            c.opened = true;
+          }
+        }
+      }
+    }
 
-        onKeyDown("down", () => {
-            player.move(0, SPEED)
-        })
+    const SPEED = 120;
 
-        onGamepadButtonPress("south", interact)
+    // ===== Touch / On-screen controls =====
+    // Track which directions are currently pressed (supports multi-press)
+    const pressed = new Set();
 
-        onGamepadStick("left", (v) => {
-            if (v.x < 0) {
-                player.flipX = true
-            } else if (v.x > 0) {
-                player.flipX = false
-            }
-            player.move(v.scale(SPEED))
-            if (v.isZero()) {
-                if (player.curAnim() !== "idle") player.play("idle")
-            } else {
-                if (player.curAnim() !== "run") player.play("run")
-            }
-        })
+    const dirVec = () => {
+      let x = 0, y = 0;
+      if (pressed.has("left"))  x -= 1;
+      if (pressed.has("right")) x += 1;
+      if (pressed.has("up"))    y -= 1;
+      if (pressed.has("down"))  y += 1;
+      const v = vec2(x, y);
+      return v.len() > 0 ? v.unit() : v; // normalize diagonals
+    };
 
-            ;["left", "right", "up", "down"].forEach((key) => {
-                onKeyPress(key, () => {
-                    player.play("run")
-                })
-                onKeyRelease(key, () => {
-                    if (
-                        !isKeyDown("left")
-                        && !isKeyDown("right")
-                        && !isKeyDown("up")
-                        && !isKeyDown("down")
-                    ) {
-                        player.play("idle")
-                    }
-                })
-            })
+    const startPress = (d) => {
+      pressed.add(d);
+      const v = dirVec();
+      if (v.x < 0) player.flipX = true;
+      if (v.x > 0) player.flipX = false;
+      if (player.curAnim() !== "run" && (v.x !== 0 || v.y !== 0)) player.play("run");
+    };
+    const stopPress = (d) => {
+      pressed.delete(d);
+      const v = dirVec();
+      if (v.x === 0 && v.y === 0 && player.curAnim() !== "idle") player.play("idle");
+      if (v.x < 0) player.flipX = true;
+      if (v.x > 0) player.flipX = false;
+    };
 
-    </script>
+    // Movement happens continuously in onUpdate based on pressed set
+    onUpdate(() => {
+      const v = dirVec();
+      player.move(v.scale(SPEED));
+      camPos(player.pos);
+      if (v.x === 0 && v.y === 0 && player.curAnim() !== "idle") {
+        player.play("idle");
+      } else if ((v.x !== 0 || v.y !== 0) && player.curAnim() !== "run") {
+        player.play("run");
+      }
+    });
+
+    player.onPhysicsResolve(() => camPos(player.pos));
+
+    // Wire buttons (pointer events; also work with mouse)
+    const dpad = document.getElementById("dpad");
+    const actionBtn = document.getElementById("btn-action");
+
+    // utility to attach both pointer & mouse/touch fallbacks with passive: false
+    const bindHold = (el, dir) => {
+      const down = (e) => { e.preventDefault(); startPress(dir); el.setPointerCapture?.(e.pointerId); };
+      const up   = (e) => { e.preventDefault(); stopPress(dir);  el.releasePointerCapture?.(e.pointerId); };
+      el.addEventListener("pointerdown", down, { passive: false });
+      el.addEventListener("pointerup",   up,   { passive: false });
+      el.addEventListener("pointercancel", up, { passive: false });
+      el.addEventListener("pointerleave",  up, { passive: false });
+    };
+
+    dpad.querySelectorAll("button[data-dir]").forEach(btn => {
+      bindHold(btn, btn.dataset.dir);
+    });
+
+    actionBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); actionBtn.setPointerCapture?.(e.pointerId); interact(); });
+    actionBtn.addEventListener("pointerup",   (e) => { e.preventDefault(); actionBtn.releasePointerCapture?.(e.pointerId); });
+
+    // ===== Removed keyboard & gamepad bindings entirely =====
+    // No onKeyDown/onKeyPress/onGamepad... hooks remain. Touch UI only.
+  </script>
 </body>
 </html>
