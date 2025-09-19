@@ -1,198 +1,281 @@
-// TARS online. Boots strapped. Let's kaboom.
-const k = kaboom({
-  background: [18, 18, 18],
-  canvas: undefined, // let Kaboom make one
-  pixelDensity: devicePixelRatio, // crisp on mobile
-})
+// Kaboom mobile demo – touch controls + effect toggles
+// ----------------------------------------------------
 
-// Shortcuts (optional readability)
-const { width, height, vec2, wave, time, add, pos, rect, area, body, anchor, color, outline, opacity, text, circle, onUpdate, onMouseDown, onMouseRelease, isMouseDown } = k
+// Start game
+kaboom()
 
-// Physics
+// Load assets
+loadSprite("bean", "/sprites/bean.png")
+loadSprite("coin", "/sprites/coin.png")
+loadSprite("spike", "/sprites/spike.png")
+loadSprite("grass", "/sprites/grass.png")
+loadSprite("ghosty", "/sprites/ghosty.png")
+loadSound("score", "/examples/sounds/score.mp3")
+
+// Post-processing effects (matches your original)
+const effects = {
+	crt: () => ({
+		"u_flatness": 3,
+	}),
+	vhs: () => ({
+		"u_intensity": 12,
+	}),
+	pixelate: () => ({
+		"u_resolution": vec2(width(), height()),
+		"u_size": wave(2, 16, time() * 2),
+	}),
+	invert: () => ({
+		"u_invert": 1,
+	}),
+	light: () => ({
+		"u_radius": 64,
+		"u_blur": 64,
+		"u_resolution": vec2(width(), height()),
+		"u_mouse": mousePos(),
+	}),
+}
+
+// Load effect shaders
+for (const effect in effects) {
+	loadShaderURL(effect, null, `/examples/shaders/${effect}.frag`)
+}
+
+let curEffect = 0
 const SPEED = 480
 const JUMP_VEL = 960
+
 setGravity(2400)
 
-// Minimal level using primitives (no external assets needed)
+// Level
 const level = addLevel([
-  "@  ^ $$",
-  "=======",
+	"@  ^ $$",
+	"=======",
 ], {
-  tileWidth: 64,
-  tileHeight: 64,
-  pos: vec2(100, 200),
-  tiles: {
-    "@": () => [
-      // Player: a friendly bean-ish circle with a body
-      circle(22),
-      color(120, 200, 255),
-      area({ shape: new Polygon([vec2(0,0)]) }), // auto from circle is fine too
-      area(), // default hitbox
-      body(),
-      anchor("bot"),
-      "player",
-    ],
-    "=": () => [
-      rect(64, 24, { radius: 6 }),
-      color(80, 170, 90),
-      area(),
-      body({ isStatic: true }),
-      anchor("bot"),
-    ],
-    "$": () => [
-      circle(14),
-      color(255, 215, 0),
-      area(),
-      anchor("bot"),
-      "coin",
-    ],
-    "^": () => [
-      rect(36, 28, { radius: 4 }),
-      color(220, 60, 60),
-      area(),
-      anchor("bot"),
-      "danger",
-    ],
-  },
+	tileWidth: 64,
+	tileHeight: 64,
+	pos: vec2(100, 200),
+	tiles: {
+		"@": () => [
+			sprite("bean"),
+			area(),
+			body(),
+			anchor("bot"),
+			"player",
+		],
+		"=": () => [
+			sprite("grass"),
+			area(),
+			body({ isStatic: true }),
+			anchor("bot"),
+		],
+		"$": () => [
+			sprite("coin"),
+			area(),
+			anchor("bot"),
+			"coin",
+		],
+		"^": () => [
+			sprite("spike"),
+			area(),
+			anchor("bot"),
+			"danger",
+		],
+	},
 })
 
 // Player ref
 const player = level.get("player")[0]
 
-// UI: score + hint
-let score = 0
-const scoreLabel = add([
-  pos(8, 8),
-  text("Score: 0"),
-  anchor("topleft"),
-  color(255,255,255),
-  k.fixed(),
+// UI: current effect label
+const label = add([
+	pos(8, 8),
+	text(Object.keys(effects)[curEffect]),
+	anchor("topleft"),
+	fixed(),
 ])
 
+// Hint text (mobile + keyboard)
 add([
-  pos(8, height() - 8),
-  text("Touch ◀ ▶ ⤴  to move/jump"),
-  anchor("botleft"),
-  k.fixed(),
+	pos(8, height() - 8),
+	text("Tap ▲ / ▼ to switch effects (or use up / down)"),
+	anchor("botleft"),
+	fixed(),
 ])
 
-// --- TOUCH / MOBILE CONTROLS ------------------------------------
+// ------------------- TOUCH / MOBILE CONTROLS -------------------
+
+// movement flags driven by touch buttons
 let moveLeft = false
 let moveRight = false
 let jumpQueued = false
 
+// tiny helper to make a clickable/touchable UI rect button
 function makeButton({ x, y, w, h, labelText, onPress, onRelease, anchorPos = "center" }) {
-  const btn = add([
-    pos(x, y),
-    rect(w, h, { radius: 10 }),
-    area(),
-    outline(2),
-    color(0, 0, 0),
-    opacity(0.14),
-    anchor(anchorPos),
-    k.fixed(),
-    "uiButton",
-    { isDown: false, onPress, onRelease },
-  ])
+	const btn = add([
+		pos(x, y),
+		rect(w, h, { radius: 8 }),
+		area(),
+		outline(2),
+		color(0, 0, 0),
+		opacity(0.12),
+		anchor(anchorPos),
+		fixed(),
+		"uiButton",
+		{ isDown: false, onPress, onRelease },
+	])
 
-  add([
-    text(labelText, { size: Math.min(28, Math.floor(h * 0.65)) }),
-    pos(x, y),
-    anchor("center"),
-    color(255, 255, 255),
-    k.fixed(),
-  ])
+	// label atop the button
+	add([
+		text(labelText, { size: Math.min(24, Math.floor(h * 0.6)) }),
+		pos(x, y),
+		anchor("center"),
+		color(255, 255, 255),
+		fixed(),
+	])
 
-  // unified pointer: works for touch & mouse
-  onMouseDown(() => {
-    if (!btn.isDown && btn.hasPoint(k.mousePos())) {
-      btn.isDown = true
-      btn.opacity = 0.28
-      if (btn.onPress) btn.onPress()
-    }
-  })
-  onMouseRelease(() => {
-    if (btn.isDown) {
-      btn.isDown = false
-      btn.opacity = 0.14
-      if (btn.onRelease) btn.onRelease()
-    }
-  })
-  onUpdate(() => {
-    // if finger lifted elsewhere
-    if (btn.isDown && !isMouseDown()) {
-      btn.isDown = false
-      btn.opacity = 0.14
-      if (btn.onRelease) btn.onRelease()
-    }
-  })
-  return btn
+	// pointer handling that works for both touch & mouse
+	onMouseDown(() => {
+		if (!btn.isDown && btn.hasPoint(mousePos())) {
+			btn.isDown = true
+			btn.opacity = 0.25
+			if (btn.onPress) btn.onPress()
+		}
+	})
+	onMouseRelease(() => {
+		if (btn.isDown) {
+			btn.isDown = false
+			btn.opacity = 0.12
+			if (btn.onRelease) btn.onRelease()
+		}
+	})
+	// if the user drags off the button, treat it as release when finger lifts
+	onUpdate(() => {
+		if (btn.isDown && !isMouseDown()) {
+			btn.isDown = false
+			btn.opacity = 0.12
+			if (btn.onRelease) btn.onRelease()
+		}
+	})
+
+	return btn
 }
 
-// Layout
+// layout
 const margin = 18
 const btnH = 72
 const btnW = 72
 
-// Left / Right (bottom-left)
+// left / right buttons (bottom-left)
 makeButton({
-  x: margin + btnW / 2,
-  y: height() - margin - btnH / 2,
-  w: btnW,
-  h: btnH,
-  labelText: "◀",
-  onPress: () => { moveLeft = true },
-  onRelease: () => { moveLeft = false },
+	x: margin + btnW / 2,
+	y: height() - margin - btnH / 2,
+	w: btnW,
+	h: btnH,
+	labelText: "◀",
+	onPress: () => { moveLeft = true },
+	onRelease: () => { moveLeft = false },
 })
 
 makeButton({
-  x: margin + btnW + 12 + btnW / 2,
-  y: height() - margin - btnH / 2,
-  w: btnW,
-  h: btnH,
-  labelText: "▶",
-  onPress: () => { moveRight = true },
-  onRelease: () => { moveRight = false },
+	x: margin + btnW + 12 + btnW / 2,
+	y: height() - margin - btnH / 2,
+	w: btnW,
+	h: btnH,
+	labelText: "▶",
+	onPress: () => { moveRight = true },
+	onRelease: () => { moveRight = false },
 })
 
-// Jump (bottom-right, bigger)
+// jump button (bottom-right, bigger)
 makeButton({
-  x: width() - margin - 88 / 2,
-  y: height() - margin - 88 / 2,
-  w: 88,
-  h: 88,
-  labelText: "⤴",
-  onPress: () => { jumpQueued = true },
-  onRelease: () => {},
+	x: width() - margin - 88 / 2,
+	y: height() - margin - 88 / 2,
+	w: 88,
+	h: 88,
+	labelText: "⤴",
+	onPress: () => { jumpQueued = true }, // queued to be forgiving
+	onRelease: () => {},
 })
 
-// Keyboard fallback (for desktop testing)
+// ▲ / ▼ effect toggles (top-left)
+const effBtnW = 36, effBtnH = 28
+makeButton({
+	x: margin + effBtnW / 2,
+	y: margin + effBtnH / 2,
+	w: effBtnW,
+	h: effBtnH,
+	labelText: "▲",
+	onPress: () => {
+		const list = Object.keys(effects)
+		curEffect = (curEffect - 1 + list.length) % list.length
+		label.text = list[curEffect]
+	},
+	onRelease: () => {},
+	anchorPos: "topleft",
+})
+
+makeButton({
+	x: margin + effBtnW / 2,
+	y: margin + effBtnH + 8 + effBtnH / 2,
+	w: effBtnW,
+	h: effBtnH,
+	labelText: "▼",
+	onPress: () => {
+		const list = Object.keys(effects)
+		curEffect = (curEffect + 1) % list.length
+		label.text = list[curEffect]
+	},
+	onRelease: () => {},
+	anchorPos: "topleft",
+})
+
+// Keyboard fallback (optional, non-mobile)
+onKeyPress("space", () => { jumpQueued = true })
 onKeyDown("left", () => { moveLeft = true })
 onKeyRelease("left", () => { moveLeft = false })
 onKeyDown("right", () => { moveRight = true })
 onKeyRelease("right", () => { moveRight = false })
-onKeyPress("space", () => { jumpQueued = true })
+onKeyPress("up", () => {
+	const list = Object.keys(effects)
+	curEffect = (curEffect - 1 + list.length) % list.length
+	label.text = list[curEffect]
+})
+onKeyPress("down", () => {
+	const list = Object.keys(effects)
+	curEffect = (curEffect + 1) % list.length
+	label.text = list[curEffect]
+})
 
-// Drive movement
+// Drive movement from flags
 onUpdate(() => {
-  if (moveLeft && !moveRight) player.move(-SPEED, 0)
-  else if (moveRight && !moveLeft) player.move(SPEED, 0)
+	if (moveLeft && !moveRight) {
+		player.move(-SPEED, 0)
+	} else if (moveRight && !moveLeft) {
+		player.move(SPEED, 0)
+	}
 
-  if (jumpQueued && player.isGrounded()) {
-    player.jump(JUMP_VEL)
-  }
-  jumpQueued = false
+	if (jumpQueued && player.isGrounded()) {
+		player.jump(JUMP_VEL)
+	}
+	// consume the queued jump each frame to avoid multi-taps
+	jumpQueued = false
 })
-// --- END TOUCH CONTROLS -----------------------------------------
 
-// Collisions
+// ---------------- END TOUCH / MOBILE CONTROLS ------------------
+
+// Death: reset to spawn
 player.onCollide("danger", () => {
-  // back to spawn
-  player.pos = level.tile2Pos(0, 0)
+	player.pos = level.tile2Pos(0, 0)
 })
 
+// Coins
 player.onCollide("coin", (coin) => {
-  destroy(coin)
-  score += 1
-  scoreLabel.text = `Score: ${score}`
+	destroy(coin)
+	play("score")
+})
+
+// Apply post effect
+onUpdate(() => {
+	const effect = Object.keys(effects)[curEffect]
+	usePostEffect(effect, effects[effect]())
 })
