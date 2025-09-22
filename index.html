@@ -1,11 +1,10 @@
 <!doctype html>
 <html lang="en">
 <head>
-    <meta charset="utf-8" />
-    <meta name="viewport"
-          content="width=device-width,initial-scale=1,viewport-fit=cover" />
+    <meta charset="utf-8"/>
+    <meta name="viewport"content="width=device-width,initial-scale=1,viewport-fit=cover"/>
     <meta name="format-detection" content="telephone=no">
-    <title>Kaboom Demo — Touch Controls (All-in-one)</title>
+    <title>Cache Crusader</title>
     <style>
         :root {
             --pad: 14px;
@@ -28,9 +27,9 @@
             place-items: center;
         }
 
-            #game canvas {
-                image-rendering: pixelated;
-            }
+        #game canvas {
+            image-rendering: pixelated;
+        }
 
         .hud {
             position: fixed;
@@ -53,25 +52,25 @@
             touch-action: none;
         }
 
-            .controls button {
-                pointer-events: auto;
-                width: var(--btn);
-                height: var(--btn);
-                border-radius: 3px; /* small radius = blocky */
-                border: 3px solid #222; /* thick pixel border */
-                background: #444; /* flat gray fill */
-                color: #fff;
-                font: bold 20px monospace; /* monospace = retro */
-                text-shadow: 1px 1px 0 #000; /* pixel-style text */
-                image-rendering: pixelated;
-                touch-action: none;
-            }
+        .controls button {
+            pointer-events: auto;
+            width: var(--btn);
+            height: var(--btn);
+            border-radius: 3px;          
+            border: 3px solid #222;     
+            background: #444;
+            color: #fff;
+            font: bold 20px monospace;
+            text-shadow: 1px 1px 0 #000;
+            image-rendering: pixelated;
+            touch-action: none;
+        }
 
-                .controls button:active {
-                    background: #222;
-                    border-color: #ffcc00; /* golden highlight on press */
-                    color: #ffcc00;
-                }
+        .controls button:active {
+            background: #222;
+            border-color: #ffcc00;
+            color: #ffcc00;
+        }
 
         .btn-up {
             grid-area: 1 / 2;
@@ -97,25 +96,25 @@
             touch-action: none;
         }
 
-            .action-wrap button {
-                pointer-events: auto;
-                width: calc(var(--btn) * 1.2);
-                height: calc(var(--btn) * 1.2);
-                border-radius: 3px;
-                border: 3px solid #222;
-                background: #800; /* deep red fill */
-                color: #fff;
-                font: bold 20px monospace;
-                text-shadow: 1px 1px 0 #000;
-                image-rendering: pixelated;
-                touch-action: none;
-            }
+        .action-wrap button {
+            pointer-events: auto;
+            width: calc(var(--btn) * 1.2);
+            height: calc(var(--btn) * 1.2);
+            border-radius: 3px;
+            border: 3px solid #222;
+            background: #800;
+            color: #fff;
+            font: bold 20px monospace;
+            text-shadow: 1px 1px 0 #000;
+            image-rendering: pixelated;
+            touch-action: none;
+        }
 
-                .action-wrap button:active {
-                    background: #c00;
-                    border-color: #ffcc00;
-                    color: #ffcc00;
-                }
+        .action-wrap button:active {
+            background: #c00;
+            border-color: #ffcc00;
+            color: #ffcc00;
+        }
 
         @media (max-width: 420px) {
             :root {
@@ -139,14 +138,11 @@
 
         canvas, img {
             -webkit-user-drag: none;
-            user-drag: none;
         }
     </style>
-
 </head>
 <body>
     <div id="game"></div>
-
     <div class="hud" aria-hidden="false">
         <div class="controls" id="dpad" role="group" aria-label="Movement">
             <button class="btn-up" data-dir="up" aria-label="Up">▲</button>
@@ -162,21 +158,16 @@
     <script type="module">
         import kaboom from "https://cdn.jsdelivr.net/npm/kaboom@3000/dist/kaboom.mjs";
 
-        // ===== Fixed internal resolution (prevents scale drift on rotate) =====
-        const GAME_W = 320;   // multiples of 16 recommended
-        const GAME_H = 180;
-
         kaboom({
             root: document.querySelector("#game"),
-            width: GAME_W,
-            height: GAME_H,
-            background: [0, 0, 0],
+            width: 320,
+            height: 180,
+            background: [16, 16, 16],
             crisp: true,
             letterbox: true,
             stretch: false,
         });
 
-        // ===== iOS interaction hard-stops (single-file) =====
         // Prevent text selection and context menu globally
         document.addEventListener("selectstart", (e) => e.preventDefault());
         document.addEventListener("contextmenu", (e) => e.preventDefault(), { passive: false });
@@ -189,7 +180,7 @@
             lastTouch = now;
         }, { passive: false });
 
-        // ===== Sprites / Atlas =====
+        // Sprites / Atlas 
         loadSpriteAtlas("sprites/dungeon.png", {
             "hero": {
                 "x": 128, "y": 196, "width": 144, "height": 28, "sliceX": 9,
@@ -214,6 +205,19 @@
                     "close": { "from": 2, "to": 0, "speed": 20, "loop": false }
                 }
             },
+            "lava_fountain": {
+                "x": 64, "y": 0, "width": 48, "height": 48, "sliceX": 3,
+                "anims": {
+                    "flow": { "from": 0, "to": 2, "speed": 7, "loop": true }
+                }
+            },
+            "door": {
+                "x": 32, "y": 208, "width": 64, "height": 48, "sliceX": 2,
+                "anims": {
+                    "open": { "from": 0, "to": 1, "loop": false },
+                    "close": { "from": 1, "to": 0, "loop": false }
+                }
+            },
             "wall": { "x": 16, "y": 16, "width": 16, "height": 16 },
             "wall_top": { "x": 16, "y": 0, "width": 16, "height": 16 },
             "wall_left": { "x": 16, "y": 128, "width": 16, "height": 16 },
@@ -224,9 +228,16 @@
             "wall_botright": { "x": 48, "y": 144, "width": 16, "height": 16 }
         });
 
-        // ===== Levels =====
+        // Levels 
         addLevel([
-            "xxxxxxxxxx",
+            "          ",
+            "          ",
+            "          ",
+            "          ",
+            "          ",
+            "          ",
+            "          ",
+            "          ",
             "          ",
             "          ",
             "          ",
@@ -243,20 +254,23 @@
         });
 
         const map = addLevel([
-            "tttttttttt",
-            "cwwwwwwwwd",
-            "l        r",
+            "tt  ttt1tt",
+            "cw  www wd",
+            "l =      r",
             "l        r",
             "l        r",
             "l      $ r",
             "l        r",
             "l $      r",
-            "attttttttb",
-            "wwwwwwwwww",
+            "atttt1tttb",
+            "wwwww wwww",
+            "          ",
         ], {
             tileWidth: 16,
             tileHeight: 16,
             tiles: {
+                "=": () => DoorTile(false),
+                "1": () => [sprite("lava_fountain", { anim: "flow" }), area({ shape: new Rect(vec2(0, 12), 16, 20) }), body({ isStatic: true }), tile({ isObstacle: true })],
                 "$": () => [sprite("chest"), area(), body({ isStatic: true }), tile({ isObstacle: true }), { opened: false }, "chest"],
                 "a": () => [sprite("wall_botleft"), area({ shape: new Rect(vec2(0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
                 "b": () => [sprite("wall_botright"), area({ shape: new Rect(vec2(12, 0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
@@ -269,6 +283,47 @@
             },
         });
 
+        // Interaction
+        function DoorTile(initialOpen = false) {
+            const W = 32;
+            const BLOCK = 1;
+
+            return [
+                sprite("door", { anim: initialOpen ? "open" : "close" }),
+                anchor("botleft"),
+                area(),      
+                body({ isStatic: true }),
+                "door",
+                {
+                    opened: initialOpen,
+                    add() { this.setOpen(this.opened); },
+
+                    setOpen(state) {
+                        this.opened = state;
+                        this.play(state ? "open" : "close");
+                        this.area.shape = state
+                            ? new Rect(vec2(0, 0), 1, 1)
+                            : new Rect(vec2(0, -BLOCK), W, BLOCK);
+                    },
+                },
+            ];
+        }
+
+        function interact() {
+            for (const col of player.getCollisions()) {
+                const c = col.target;
+                if (c.is("chest")) {
+                    if (c.opened) { c.play("close"); c.opened = false; }
+                    else { c.play("open"); c.opened = true; }
+                }
+
+                if (c.is && c.is("door")) {
+                    c.setOpen(!c.opened);
+                }
+            }
+        }
+
+        // Players and mobs 
         const player = map.spawn([
             sprite("hero", { anim: "idle" }),
             area({ shape: new Rect(vec2(0, 6), 12, 12) }),
@@ -283,22 +338,9 @@
             area({ scale: 0.5 }),
             body({ isStatic: true }),
             tile({ isObstacle: true }),
-        ], 5, 4);
+        ], 5, 8);
 
-        // ===== Interaction =====
-        function interact() {
-            for (const col of player.getCollisions()) {
-                const c = col.target;
-                if (c.is("chest")) {
-                    if (c.opened) { c.play("close"); c.opened = false; }
-                    else { c.play("open"); c.opened = true; }
-                }
-            }
-        }
-
-        const SPEED = 120;
-
-        // ===== Touch controls =====
+        // Touch controls
         const pressed = new Set();
         const dirVec = () => {
             let x = 0, y = 0;
@@ -317,6 +359,7 @@
             if (v.x > 0) player.flipX = false;
             if (player.curAnim() !== "run" && (v.x || v.y)) player.play("run");
         };
+
         const stopPress = (d) => {
             pressed.delete(d);
             const v = dirVec();
@@ -327,7 +370,7 @@
 
         onUpdate(() => {
             const v = dirVec();
-            player.move(v.scale(SPEED));
+            player.move(v.scale(120));
             camPos(player.pos);
             if (!v.x && !v.y && player.curAnim() !== "idle") player.play("idle");
             else if ((v.x || v.y) && player.curAnim() !== "run") player.play("run");
