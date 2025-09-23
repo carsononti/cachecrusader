@@ -38,91 +38,6 @@
             z-index: 10;
         }
 
-        .controls {
-            position: absolute;
-            left: calc(var(--pad) + var(--safe-left));
-            bottom: calc(var(--pad) + var(--safe-bottom));
-            display: grid;
-            grid-template-columns: var(--btn) var(--btn) var(--btn);
-            grid-template-rows: var(--btn) var(--btn) var(--btn);
-            gap: 8px;
-            pointer-events: none;
-            -webkit-user-select: none;
-            user-select: none;
-            touch-action: none;
-        }
-
-        .controls button {
-            pointer-events: auto;
-            width: var(--btn);
-            height: var(--btn);
-            border-radius: 3px;          
-            border: 3px solid #222;     
-            background: #444;
-            color: #fff;
-            font: bold 20px monospace;
-            text-shadow: 1px 1px 0 #000;
-            image-rendering: pixelated;
-            touch-action: none;
-        }
-
-        .controls button:active {
-            background: #222;
-            border-color: #ffcc00;
-            color: #ffcc00;
-        }
-
-        .btn-up {
-            grid-area: 1 / 2;
-        }
-
-        .btn-left {
-            grid-area: 2 / 1;
-        }
-
-        .btn-down {
-            grid-area: 3 / 2;
-        }
-
-        .btn-right {
-            grid-area: 2 / 3;
-        }
-
-        .action-wrap {
-            position: absolute;
-            right: calc(var(--pad) + var(--safe-right));
-            bottom: calc(var(--pad) + var(--safe-bottom));
-            pointer-events: none;
-            touch-action: none;
-        }
-
-        .action-wrap button {
-            pointer-events: auto;
-            width: calc(var(--btn) * 1.2);
-            height: calc(var(--btn) * 1.2);
-            border-radius: 3px;
-            border: 3px solid #222;
-            background: #800;
-            color: #fff;
-            font: bold 20px monospace;
-            text-shadow: 1px 1px 0 #000;
-            image-rendering: pixelated;
-            touch-action: none;
-        }
-
-        .action-wrap button:active {
-            background: #c00;
-            border-color: #ffcc00;
-            color: #ffcc00;
-        }
-
-        @media (max-width: 420px) {
-            :root {
-                --btn: 56px;
-                --pad: 10px;
-            }
-        }
-
         /* iOS quirks fix */
         html, body, #game, #game canvas,
         .hud, .controls, .controls button,
@@ -144,20 +59,12 @@
 <body>
     <div id="game"></div>
     <div class="hud" aria-hidden="false">
-        <div class="controls" id="dpad" role="group" aria-label="Movement">
-            <button class="btn-up" data-dir="up" aria-label="Up">▲</button>
-            <button class="btn-left" data-dir="left" aria-label="Left">◀</button>
-            <button class="btn-down" data-dir="down" aria-label="Down">▼</button>
-            <button class="btn-right" data-dir="right" aria-label="Right">▶</button>
-        </div>
-        <div class="action-wrap">
-            <button id="btn-action" aria-label="Action">A</button>
-        </div>
     </div>
 
     <script type="module">
         import kaboom from "https://cdn.jsdelivr.net/npm/kaboom@3000/dist/kaboom.mjs";
 
+        // Initialize game instance
         kaboom({
             root: document.querySelector("#game"),
             width: 256,
@@ -183,7 +90,7 @@
         // Load custom font
         loadBitmapFont("unscii", "unscii_8x8.png", 8, 8);
 
-        // Sprites / Atlas 
+        // Sprite atlas
         loadSpriteAtlas("dungeon.png", {
             "hero": {
                 "x": 128, "y": 196, "width": 144, "height": 28, "sliceX": 9,
@@ -200,7 +107,6 @@
                     "run": { "from": 4, "to": 7, "speed": 10, "loop": true }
                 }
             },
-            "floor": { "x": 16, "y": 64, "width": 48, "height": 48, "sliceX": 3, "sliceY": 3 },
             "chest": {
                 "x": 304, "y": 304, "width": 48, "height": 16, "sliceX": 3,
                 "anims": {
@@ -221,9 +127,11 @@
                     "close": { "from": 1, "to": 0, "loop": false }
                 }
             },
-            "health": {
-                "x": 288, "y": 256, "width": 48, "height": 16, "sliceX": 3,
-            },
+            "health": { "x": 288, "y": 256, "width": 48, "height": 16, "sliceX": 3 },
+            "arrow_button": { "x": 288, "y": 336, "width": 64, "height": 16, "sliceX": 4 },
+            "arrow_button_action": { "x": 288, "y": 352, "width": 64, "height": 16, "sliceX": 4 },
+            "interact_button": { "x": 288, "y": 368, "width": 32, "height": 16, "sliceX": 2 },
+            "floor": { "x": 16, "y": 64, "width": 48, "height": 48, "sliceX": 3, "sliceY": 3 },
             "wall": { "x": 16, "y": 16, "width": 16, "height": 16 },
             "wall_top": { "x": 16, "y": 0, "width": 16, "height": 16 },
             "wall_left": { "x": 16, "y": 128, "width": 16, "height": 16 },
@@ -234,7 +142,7 @@
             "wall_botright": { "x": 48, "y": 144, "width": 16, "height": 16 }
         });
 
-        // Levels 
+        // Floor map 
         addLevel([
             "          ",
             "          ",
@@ -259,6 +167,7 @@
             tiles: { " ": () => [sprite("floor", { frame: ~~rand(0, 8) })] },
         });
 
+        // Level map
         const map = addLevel([
             "tt  ttt1tt",
             "cw  www wd",
@@ -289,7 +198,7 @@
             },
         });
 
-        // Interaction
+        // Door logic
         function DoorTile(initialOpen = false) {
             return [
                 sprite("door", { anim: initialOpen ? "open" : "close" }),
@@ -302,15 +211,13 @@
 
                     add() {
                         this.setOpen(this.opened);
-
-                        // run every frame
                         this.onUpdate(() => {
-                            if (!player) return; // safety in case player isn't loaded yet
+                            if (!player) return; // Safety in case player isn't loaded yet
                             if (player.pos.y + 16 < this.pos.y) {
-                                this.z = 1000;   // player below → door under
+                                this.z = 1000; // Player below -> door above
                             }
                             else {
-                                this.z = -1000;    // player above → door over
+                                this.z = -1000; // player above -> door below
                             }
                         });
                     },
@@ -319,8 +226,8 @@
                         this.opened = state;
                         this.play(state ? "open" : "close");
                         this.area.shape = state
-                            ? new Rect(vec2(0, 0), 1, 1)     // passable
-                            : new Rect(vec2(0, -1), 32, 16);  // solid
+                            ? new Rect(vec2(0, 0), 1, 1) // Passable
+                            : new Rect(vec2(0, -1), 32, 16); // Solid
                     },
                 },
             ];
@@ -369,39 +276,38 @@
         ]);
 
         // Player health
-        // Config
-        const MAX_HEALTH = 6; // 3 full hearts
-        let currentHealth = 6; // start full
-
-        // Create heart icons
+        const MAX_HEALTH = 6;
+        let currentHealth = 6;
         const healthIcons = [];
         const HEART_SIZE = 16;
 
+        // Create heart icons
         for (let i = 0; i < MAX_HEALTH / 2; i++) {
             const heart = add([
-                sprite("health", { frame: 0 }), // full by default
-                pos(4 + i * (HEART_SIZE + 2), 4), // spacing
+                sprite("health", { frame: 0 }), // Full by default
+                pos(4 + i * (HEART_SIZE + 2), 4), // Spacing
                 fixed(),
-                z(1000),
+                z(1000) // Always on top
             ]);
             healthIcons.push(heart);
         }
 
-        // Function to update the display
+        // Display health icons
         function updateHearts() {
             for (let i = 0; i < healthIcons.length; i++) {
                 const heartValue = currentHealth - i * 2;
                 if (heartValue >= 2) {
-                    healthIcons[i].frame = 0; // full
+                    healthIcons[i].frame = 0; // Full
                 } else if (heartValue === 1) {
-                    healthIcons[i].frame = 1; // half
+                    healthIcons[i].frame = 1; // Half
                 } else {
-                    healthIcons[i].frame = 2; // empty
+                    healthIcons[i].frame = 2; // Empty
                 }
             }
         }
+        updateHearts();
 
-        // Example: lose health on action button press
+        // TODO: debug lose health on "h"
         onKeyPress("h", () => {
             if (currentHealth > 0) {
                 currentHealth--;
@@ -409,7 +315,7 @@
             }
         });
 
-        // Example: restore on "j"
+        // TODO: debug health restore on "j"
         onKeyPress("j", () => {
             if (currentHealth < MAX_HEALTH) {
                 currentHealth++;
@@ -417,63 +323,143 @@
             }
         });
 
-        // Initialize once
-        updateHearts();
+        onKeyPress("space", interact);
+  
+        const up_btn = add([text("▲"), scale(0.8), pos(32, 200), anchor("center"), fixed(), area()]);
+        const down_btn = add([text("▼"), scale(0.8), pos(32, 240), anchor("center"), fixed(), area()]);
+        const left_btn = add([text("◀"), scale(0.6), pos(11, 221), anchor("center"), fixed(), area()]);
+        const right_btn = add([text("▶"), scale(0.6), pos(52, 221), anchor("center"), fixed(), area()]);
 
+        const interact_btn = add([text("x"), scale(1.2), pos(220, 221), anchor("center"), fixed(), area()]);
 
-        // Touch controls
-        const pressed = new Set();
-        const dirVec = () => {
-            let x = 0, y = 0;
-            if (pressed.has("left")) x -= 1;
-            if (pressed.has("right")) x += 1;
-            if (pressed.has("up")) y -= 1;
-            if (pressed.has("down")) y += 1;
-            const v = vec2(x, y);
-            return v.len() > 0 ? v.unit() : v;
-        };
+        // ---- Interact button (sprite) ----
+        const SCL = 3;
+        const interactPos = vec2(width() - 22 * SCL, height() - 22 * SCL);
 
-        const startPress = (d) => {
-            pressed.add(d);
-            const v = dirVec();
-            if (v.x < 0) player.flipX = true;
-            if (v.x > 0) player.flipX = false;
-            if (player.curAnim() !== "run" && (v.x || v.y)) player.play("run");
-        };
+        const interactBtn = add([
+            sprite("interact_button", { frame: 0 }), // 0 idle, 1 pressed in your atlas
+            pos(interactPos),
+            scale(SCL),
+            fixed(),
+            area(),
+            z(10_000),
+            { canUse: false },
+        ]);
 
-        const stopPress = (d) => {
-            pressed.delete(d);
-            const v = dirVec();
-            if (!v.x && !v.y && player.curAnim() !== "idle") player.play("idle");
-            if (v.x < 0) player.flipX = true;
-            if (v.x > 0) player.flipX = false;
-        };
+        // Press visual + call your interact()
+        function setInteractDown(isDown) {
+            interactBtn.frame = isDown ? 1 : 0;
+            // tiny “press” nudge
+            interactBtn.pos = interactPos.add(vec2(0, isDown ? 1 : 0));
+        }
 
+        interactBtn.onClick(() => {
+            setInteractDown(true);
+            interact();              // your existing interact logic
+            wait(0.08, () => setInteractDown(false));
+        });
+
+        // Context awareness: pulse when something is in range
         onUpdate(() => {
-            const v = dirVec();
-            player.move(v.scale(120));
+            // player near an interactable?
+            const near = player.getCollisions()
+                .some(c => c.target.is?.("door") || c.target.is?.("chest"));
+
+            interactBtn.canUse = near;
+
+            // dim when not usable, pulse when usable
+            const base = SCL;
+            const pulse = base * (1 + (near ? 0.03 * Math.sin(time() * 8) : 0));
+            interactBtn.scale = vec2(pulse);
+
+            interactBtn.color = near ? rgb(255, 255, 255) : rgb(180, 180, 180);
+        });
+
+
+        // --- hold state (mouse + touch unified by Kaboom) ---
+        let pointerHeld = false;
+        onMouseDown(() => { pointerHeld = true; });
+        onMouseRelease(() => { pointerHeld = false; });
+
+        // which directions are currently held
+        const held = new Set();
+
+        // helper to wire a button to a direction
+        function bindHold(btn, dir) {
+            btn.onHoverUpdate(() => {
+                setCursor("pointer");
+                if (pointerHeld) {
+                    held.add(dir);
+                    btn.color = rgb(255, 255, 0);
+                }
+            });
+            btn.onHoverEnd(() => {
+                held.delete(dir);
+                btn.color = rgb(255, 255, 255);
+            });
+            onMouseRelease(() => {
+                held.delete(dir);
+                btn.color = rgb(255, 255, 255);
+            });
+        }
+        bindHold(up_btn, "up");
+        bindHold(down_btn, "down");
+        bindHold(left_btn, "left");
+        bindHold(right_btn, "right");
+        bindHold(interact_btn, "interact");
+
+        // safety: releasing anywhere clears all holds
+        function releaseAll() { held.clear(); }
+        window.addEventListener("blur", releaseAll, { passive: true });
+        onMouseRelease(releaseAll);
+
+        const SPEED = 120
+        onUpdate(() => {
+            let x = 0, y = 0;
+
+            // buttons
+            if (held.has("left")) x -= 1;
+            if (held.has("right")) x += 1;
+            if (held.has("up")) y -= 1;
+            if (held.has("down")) y += 1;
+
+            // keyboard (WASD)
+            if (isKeyDown("a")) x -= 1;
+            if (isKeyDown("d")) x += 1;
+            if (isKeyDown("w")) y -= 1;
+            if (isKeyDown("s")) y += 1;
+
+            const v = vec2(x, y);
+            if (v.len() > 0) {
+                const u = v.unit();
+                if (u.x < 0) player.flipX = true;
+                if (u.x > 0) player.flipX = false;
+                player.move(u.scale(SPEED));
+                if (player.curAnim() !== "run") player.play("run");
+            } else if (player.curAnim() !== "idle") {
+                player.play("idle");
+            }
+
             camPos(player.pos);
-            if (!v.x && !v.y && player.curAnim() !== "idle") player.play("idle");
-            else if ((v.x || v.y) && player.curAnim() !== "run") player.play("run");
         });
 
         player.onPhysicsResolve(() => camPos(player.pos));
 
-        const dpad = document.getElementById("dpad");
-        const actionBtn = document.getElementById("btn-action");
-
-        const bindHold = (el, dir) => {
-            const down = (e) => { e.preventDefault(); startPress(dir); el.setPointerCapture?.(e.pointerId); };
-            const up = (e) => { e.preventDefault(); stopPress(dir); el.releasePointerCapture?.(e.pointerId); };
-            el.addEventListener("pointerdown", down, { passive: false });
-            el.addEventListener("pointerup", up, { passive: false });
-            el.addEventListener("pointercancel", up, { passive: false });
-            el.addEventListener("pointerleave", up, { passive: false });
-        };
-
-        dpad.querySelectorAll("button[data-dir]").forEach(btn => bindHold(btn, btn.dataset.dir));
-        actionBtn.addEventListener("pointerdown", (e) => { e.preventDefault(); actionBtn.setPointerCapture?.(e.pointerId); interact(); });
-        actionBtn.addEventListener("pointerup", (e) => { e.preventDefault(); actionBtn.releasePointerCapture?.(e.pointerId); });
+        ;["a", "d", "w", "s"].forEach((key) => {
+            onKeyPress(key, () => {
+                player.play("run")
+            })
+            onKeyRelease(key, () => {
+                if (
+                    !isKeyDown("a")
+                    && !isKeyDown("d")
+                    && !isKeyDown("w")
+                    && !isKeyDown("s")
+                ) {
+                    player.play("idle")
+                }
+            })
+        })
     </script>
 </body>
 </html>
