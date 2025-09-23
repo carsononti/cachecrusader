@@ -162,7 +162,7 @@
             root: document.querySelector("#game"),
             width: 320,
             height: 180,
-            background: [16, 16, 16],
+            background: [5, 5, 16],
             crisp: true,
             letterbox: true,
             stretch: false,
@@ -288,9 +288,6 @@
 
         // Interaction
         function DoorTile(initialOpen = false) {
-            const W = 32;
-            const BLOCK = 1;
-
             return [
                 sprite("door", { anim: initialOpen ? "open" : "close" }),
                 anchor("botleft"),
@@ -306,7 +303,7 @@
                         this.play(state ? "open" : "close");
                         this.area.shape = state
                             ? new Rect(vec2(0, 0), 1, 1)
-                            : new Rect(vec2(0, -BLOCK), W, BLOCK);
+                            : new Rect(vec2(0, -1), 32, 1);
                     },
                 },
             ];
