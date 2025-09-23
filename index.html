@@ -180,12 +180,15 @@
             lastTouch = now;
         }, { passive: false });
 
+        // Load custom font
+        loadBitmapFont("unscii", "/unscii_8x8.png", 8, 8);
+
         // Sprites / Atlas 
-        loadSpriteAtlas("sprites/dungeon.png", {
+        loadSpriteAtlas("dungeon.png", {
             "hero": {
                 "x": 128, "y": 196, "width": 144, "height": 28, "sliceX": 9,
                 "anims": {
-                    "idle": { "from": 0, "to": 3, "speed": 3, "loop": true },
+                    "idle": { "from": 0, "to": 3, "speed": 5, "loop": true },
                     "run": { "from": 4, "to": 7, "speed": 10, "loop": true },
                     "hit": 8
                 }
@@ -332,13 +335,22 @@
             tile(),
         ], 2, 2);
 
-        map.spawn([
+        const ogre = map.spawn([
             sprite("ogre"),
             anchor("bot"),
             area({ scale: 0.5 }),
-            body({ isStatic: true }),
-            tile({ isObstacle: true }),
+            body({ isStatic: false }),
+            tile({ isObstacle: false }),
         ], 5, 8);
+
+        ogre.add([
+            text("Muggle", {
+                size: 8,
+                font: "unscii"
+            }),
+            anchor("bot"),
+            pos(0, -30)
+        ]);
 
         // Touch controls
         const pressed = new Set();
