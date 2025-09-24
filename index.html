@@ -154,7 +154,7 @@
                 z(10_000),
             ]);
 
-            add([
+            const title_shadow = add([
                 text("CACHE\nCRUSADER", {
                     size: 24,
                     font: "unscii"
@@ -209,6 +209,7 @@
             // Simple blink
             onUpdate(() => {
                 prompt.opacity = 0.6 + 0.4 * Math.sin(time() * 4);
+                title_shadow.opacity = 0.6 + 0.4 * Math.sin(time() * 4);
             });
 
             // Tap / click / key to start (Kaboom pointer events work on mobile)
