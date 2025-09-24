@@ -325,24 +325,26 @@
 
         onKeyPress("space", interact);
   
-        const up_btn = add([text("▲"), scale(0.8), pos(32, 200), anchor("center"), fixed(), area()]);
-        const down_btn = add([text("▼"), scale(0.8), pos(32, 240), anchor("center"), fixed(), area()]);
-        const left_btn = add([text("◀"), scale(0.6), pos(11, 221), anchor("center"), fixed(), area()]);
-        const right_btn = add([text("▶"), scale(0.6), pos(52, 221), anchor("center"), fixed(), area()]);
-
-        const interact_btn = add([text("x"), scale(1.2), pos(220, 221), anchor("center"), fixed(), area()]);
+        const up_btn = add([
+            sprite("arrow_button", { frame: 0 }),
+            pos(32, 200),
+            anchor("center"),
+            fixed(),
+            area()
+        ]);
+        const down_btn = add([sprite("arrow_button", { frame: 1 }), , pos(32, 240), anchor("center"), fixed(), area()]);
+        const left_btn = add([sprite("arrow_button", { frame: 3 }), , pos(11, 221), anchor("center"), fixed(), area()]);
+        const right_btn = add([sprite("arrow_button", { frame: 2 }), , pos(52, 221), anchor("center"), fixed(), area()]);
+        const interact_btn = add([text("x"), scale(0), pos(220, 221), anchor("center"), fixed(), area()]);
 
         // ---- Interact button (sprite) ----
-        const SCL = 3;
-        const interactPos = vec2(width() - 22 * SCL, height() - 22 * SCL);
+        const interactPos = vec2(width() - 16 * 3, height() - 15 * 3);
 
         const interactBtn = add([
             sprite("interact_button", { frame: 0 }), // 0 idle, 1 pressed in your atlas
             pos(interactPos),
-            scale(SCL),
             fixed(),
             area(),
-            z(10_000),
             { canUse: false },
         ]);
 
@@ -368,10 +370,8 @@
             interactBtn.canUse = near;
 
             // dim when not usable, pulse when usable
-            const base = SCL;
-            const pulse = base * (1 + (near ? 0.03 * Math.sin(time() * 8) : 0));
+            const pulse = 2 * (1 + (near ? 0.03 * Math.sin(time() * 8) : 0));
             interactBtn.scale = vec2(pulse);
-
             interactBtn.color = near ? rgb(255, 255, 255) : rgb(180, 180, 180);
         });
 
