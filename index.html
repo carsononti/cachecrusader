@@ -89,7 +89,8 @@
 
         // Load custom font
         loadBitmapFont("unscii", "unscii_8x8.png", 8, 8);
-
+        // Load splash image
+        loadSprite("title", "title.png");
         // Sprite atlas
         loadSpriteAtlas("dungeon.png", {
             "hero": {
@@ -142,335 +143,414 @@
             "wall_botright": { "x": 48, "y": 144, "width": 16, "height": 16 }
         });
 
-        // Floor map 
-        addLevel([
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-            "          ",
-        ], {
-            tileWidth: 16,
-            tileHeight: 16,
-            tiles: { " ": () => [sprite("floor", { frame: ~~rand(0, 8) })] },
-        });
-
-        // Level map
-        const map = addLevel([
-            "tt  ttt1tt",
-            "cw  www wd",
-            "l =      r",
-            "l        r",
-            "l        r",
-            "l      $ r",
-            "l        r",
-            "l $      r",
-            "atttt1  tb",
-            "wwwww   ww",
-            "      =   ",
-        ], {
-            tileWidth: 16,
-            tileHeight: 16,
-            tiles: {
-                "=": () => DoorTile(false),
-                "1": () => [sprite("lava_fountain", { anim: "flow" }), area({ shape: new Rect(vec2(0, 12), 16, 20) }), body({ isStatic: true }), tile({ isObstacle: true })],
-                "$": () => [sprite("chest"), area(), body({ isStatic: true }), tile({ isObstacle: true }), { opened: false }, "chest"],
-                "a": () => [sprite("wall_botleft"), area({ shape: new Rect(vec2(0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
-                "b": () => [sprite("wall_botright"), area({ shape: new Rect(vec2(12, 0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
-                "c": () => [sprite("wall_topleft"), area(), body({ isStatic: true }), tile({ isObstacle: true })],
-                "d": () => [sprite("wall_topright"), area(), body({ isStatic: true }), tile({ isObstacle: true })],
-                "w": () => [sprite("wall"), area(), body({ isStatic: true }), tile({ isObstacle: true })],
-                "t": () => [sprite("wall_top"), area({ shape: new Rect(vec2(0, 12), 16, 4) }), body({ isStatic: true }), tile({ isObstacle: true })],
-                "l": () => [sprite("wall_left"), area({ shape: new Rect(vec2(0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
-                "r": () => [sprite("wall_right"), area({ shape: new Rect(vec2(12, 0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
-            },
-        });
-
-        // Door logic
-        function DoorTile(initialOpen = false) {
-            return [
-                sprite("door", { anim: initialOpen ? "open" : "close" }),
-                anchor("botleft"),
-                area(),
-                body({ isStatic: true }),
-                "door",
-                {
-                    opened: initialOpen,
-
-                    add() {
-                        this.setOpen(this.opened);
-                        this.onUpdate(() => {
-                            if (!player) return; // Safety in case player isn't loaded yet
-                            if (player.pos.y + 16 < this.pos.y) {
-                                this.z = 1000; // Player below -> door above
-                            }
-                            else {
-                                this.z = -1000; // player above -> door below
-                            }
-                        });
-                    },
-
-                    setOpen(state) {
-                        this.opened = state;
-                        this.play(state ? "open" : "close");
-                        this.area.shape = state
-                            ? new Rect(vec2(0, 0), 1, 1) // Passable
-                            : new Rect(vec2(0, -1), 32, 16); // Solid
-                    },
-                },
-            ];
-        }
-
-        function interact() {
-            for (const col of player.getCollisions()) {
-                const c = col.target;
-                if (c.is("chest")) {
-                    if (c.opened) { c.play("close"); c.opened = false; }
-                    else { c.play("open"); c.opened = true; }
-                }
-
-                if (c.is && c.is("door")) {
-                    c.setOpen(!c.opened);
-                }
-            }
-        }
-
-        // Players and mobs 
-        const player = map.spawn([
-            sprite("hero", { anim: "idle" }),
-            area({ shape: new Rect(vec2(0, 6), 12, 12) }),
-            body(),
-            anchor("center"),
-            tile(),
-            z(5)
-        ], 2, 2);
-
-        const ogre = map.spawn([
-            sprite("ogre"),
-            anchor("bot"),
-            area({ scale: 0.5 }),
-            body({ isStatic: false }),
-            tile({ isObstacle: false }),
-            z(10)
-        ], 5, 8);
-
-        ogre.add([
-            text("Muggle", {
-                size: 8,
-                font: "unscii"
-            }),
-            anchor("bot"),
-            pos(0, -30),
-        ]);
-
-        // Player health
-        const MAX_HEALTH = 6;
-        let currentHealth = 6;
-        const healthIcons = [];
-        const HEART_SIZE = 16;
-
-        // Create heart icons
-        for (let i = 0; i < MAX_HEALTH / 2; i++) {
-            const heart = add([
-                sprite("health", { frame: 0 }), // Full by default
-                pos(4 + i * (HEART_SIZE + 2), 4), // Spacing
+        scene("title", () => {
+            // Fullscreen splash image
+            add([
+                sprite("title"),
+                scale(0.6),
+                pos(0, 0),
+                anchor("topleft"),
                 fixed(),
-                z(1000) // Always on top
+                z(10_000),
             ]);
-            healthIcons.push(heart);
-        }
 
-        // Display health icons
-        function updateHearts() {
-            for (let i = 0; i < healthIcons.length; i++) {
-                const heartValue = currentHealth - i * 2;
-                if (heartValue >= 2) {
-                    healthIcons[i].frame = 0; // Full
-                } else if (heartValue === 1) {
-                    healthIcons[i].frame = 1; // Half
-                } else {
-                    healthIcons[i].frame = 2; // Empty
+            add([
+                text("CACHE\nCRUSADER", {
+                    size: 24,
+                    font: "unscii"
+                }),
+                color(0, 0, 0),
+                anchor("center"),
+                pos(width() / 2, height() / 3 + 5),
+                fixed(),
+                z(10_001),
+                opacity(1),
+            ]);
+
+            add([
+                text("CACHE\nCRUSADER", {
+                    size: 24,
+                    font: "unscii"
+                }),
+                color(255, 255, 0),
+                anchor("center"),
+                pos(width() / 2, height() / 3),
+                fixed(),
+                z(10_001),
+                opacity(1),
+            ]);
+
+            const prompt = add([
+                text("Press to start", {
+                    size: 12,
+                    font: "unscii"
+                }),
+                color(0, 0, 0),
+                anchor("center"),
+                pos(width() / 2, (height() / 3) * 1.5),
+                fixed(),
+                z(10_001),
+                opacity(1),
+            ]);
+
+            add([
+                text("Press to start", {
+                    size: 12,
+                    font: "unscii"
+                }),
+                color(255, 255, 255),
+                anchor("center"),
+                pos(width() / 2, (height() / 3) * 1.5 - 2),
+                fixed(),
+                z(10_001),
+                opacity(1),
+            ]);
+
+            // Simple blink
+            onUpdate(() => {
+                prompt.opacity = 0.6 + 0.4 * Math.sin(time() * 4);
+            });
+
+            // Tap / click / key to start (Kaboom pointer events work on mobile)
+            const start = () => go("game");
+            onMousePress(start);
+            onKeyPress(start);
+        });
+
+        scene("game", () => {
+            // Floor map 
+            addLevel([
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+                "          ",
+            ], {
+                tileWidth: 16,
+                tileHeight: 16,
+                tiles: { " ": () => [sprite("floor", { frame: ~~rand(0, 8) })] },
+            });
+
+            // Level map
+            const map = addLevel([
+                "tt  ttt1tt",
+                "cw  www wd",
+                "l =      r",
+                "l        r",
+                "l        r",
+                "l      $ r",
+                "l        r",
+                "l $      r",
+                "atttt1  tb",
+                "wwwww   ww",
+                "      =   ",
+            ], {
+                tileWidth: 16,
+                tileHeight: 16,
+                tiles: {
+                    "=": () => DoorTile(false),
+                    "1": () => [sprite("lava_fountain", { anim: "flow" }), area({ shape: new Rect(vec2(0, 12), 16, 20) }), body({ isStatic: true }), tile({ isObstacle: true })],
+                    "$": () => [sprite("chest"), area(), body({ isStatic: true }), tile({ isObstacle: true }), { opened: false }, "chest"],
+                    "a": () => [sprite("wall_botleft"), area({ shape: new Rect(vec2(0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
+                    "b": () => [sprite("wall_botright"), area({ shape: new Rect(vec2(12, 0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
+                    "c": () => [sprite("wall_topleft"), area(), body({ isStatic: true }), tile({ isObstacle: true })],
+                    "d": () => [sprite("wall_topright"), area(), body({ isStatic: true }), tile({ isObstacle: true })],
+                    "w": () => [sprite("wall"), area(), body({ isStatic: true }), tile({ isObstacle: true })],
+                    "t": () => [sprite("wall_top"), area({ shape: new Rect(vec2(0, 12), 16, 4) }), body({ isStatic: true }), tile({ isObstacle: true })],
+                    "l": () => [sprite("wall_left"), area({ shape: new Rect(vec2(0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
+                    "r": () => [sprite("wall_right"), area({ shape: new Rect(vec2(12, 0), 4, 16) }), body({ isStatic: true }), tile({ isObstacle: true })],
+                },
+            });
+
+            // Door logic
+            function DoorTile(initialOpen = false) {
+                return [
+                    sprite("door", { anim: initialOpen ? "open" : "close" }),
+                    anchor("botleft"),
+                    area(),
+                    body({ isStatic: true }),
+                    "door",
+                    {
+                        opened: initialOpen,
+
+                        add() {
+                            this.setOpen(this.opened);
+                            this.onUpdate(() => {
+                                if (!player) return; // Safety in case player isn't loaded yet
+                                if (player.pos.y + 16 < this.pos.y) {
+                                    this.z = 1000; // Player below -> door above
+                                }
+                                else {
+                                    this.z = -1000; // player above -> door below
+                                }
+                            });
+                        },
+
+                        setOpen(state) {
+                            this.opened = state;
+                            this.play(state ? "open" : "close");
+                            this.area.shape = state
+                                ? new Rect(vec2(0, 0), 1, 1) // Passable
+                                : new Rect(vec2(0, -1), 32, 16); // Solid
+                        },
+                    },
+                ];
+            }
+
+            function interact() {
+                for (const col of player.getCollisions()) {
+                    const c = col.target;
+                    if (c.is("chest")) {
+                        if (c.opened) { c.play("close"); c.opened = false; }
+                        else { c.play("open"); c.opened = true; }
+                    }
+
+                    if (c.is && c.is("door")) {
+                        c.setOpen(!c.opened);
+                    }
                 }
             }
-        }
-        updateHearts();
 
-        // TODO: debug lose health on "h"
-        onKeyPress("h", () => {
-            if (currentHealth > 0) {
-                currentHealth--;
-                updateHearts();
+            // Players and mobs 
+            const player = map.spawn([
+                sprite("hero", { anim: "idle" }),
+                area({ shape: new Rect(vec2(0, 6), 12, 12) }),
+                body(),
+                anchor("center"),
+                tile(),
+                z(5)
+            ], 2, 2);
+
+            const ogre = map.spawn([
+                sprite("ogre"),
+                anchor("bot"),
+                area({ scale: 0.5 }),
+                body({ isStatic: false }),
+                tile({ isObstacle: false }),
+                z(10)
+            ], 5, 8);
+
+            ogre.add([
+                text("Muggle", {
+                    size: 8,
+                    font: "unscii"
+                }),
+                anchor("bot"),
+                pos(0, -30),
+            ]);
+
+            // Player health
+            const MAX_HEALTH = 6;
+            let currentHealth = 6;
+            const healthIcons = [];
+            const HEART_SIZE = 16;
+
+            // Create heart icons
+            for (let i = 0; i < MAX_HEALTH / 2; i++) {
+                const heart = add([
+                    sprite("health", { frame: 0 }), // Full by default
+                    pos(4 + i * (HEART_SIZE + 2), 4), // Spacing
+                    fixed(),
+                    z(1000) // Always on top
+                ]);
+                healthIcons.push(heart);
             }
-        });
 
-        // TODO: debug health restore on "j"
-        onKeyPress("j", () => {
-            if (currentHealth < MAX_HEALTH) {
-                currentHealth++;
-                updateHearts();
+            // Display health icons
+            function updateHearts() {
+                for (let i = 0; i < healthIcons.length; i++) {
+                    const heartValue = currentHealth - i * 2;
+                    if (heartValue >= 2) {
+                        healthIcons[i].frame = 0; // Full
+                    } else if (heartValue === 1) {
+                        healthIcons[i].frame = 1; // Half
+                    } else {
+                        healthIcons[i].frame = 2; // Empty
+                    }
+                }
             }
-        });
+            updateHearts();
 
-        onKeyPress("space", interact);
-  
-        const up_btn = add([
-            sprite("arrow_button", { frame: 0 }),
-            scale(2),
-            pos(46, 190),
-            anchor("center"),
-            fixed(),
-            area()
-        ]);
-        const down_btn = add([sprite("arrow_button", { frame: 1 }), scale(2), pos(46, 240), anchor("center"), fixed(), area()]);
-        const left_btn = add([sprite("arrow_button", { frame: 3 }), scale(2), pos(20, 215), anchor("center"), fixed(), area()]);
-        const right_btn = add([sprite("arrow_button", { frame: 2 }), scale(2), pos(72, 215), anchor("center"), fixed(), area()]);
-        const interact_btn = add([text("x"), scale(0), pos(220, 221), anchor("center"), fixed(), area()]);
-
-        // ---- Interact button (sprite) ----
-        const interactPos = vec2(width() - 22 * 3, height() - 22 * 3);
-        const interactBtn = add([
-            sprite("interact_button", { frame: 0 }), // 0 idle, 1 pressed in your atlas
-            pos(interactPos),
-            fixed(),
-            area(),
-            { canUse: false },
-        ]);
-
-        // Press visual + call your interact()
-        function setInteractDown(isDown) {
-            interactBtn.frame = isDown ? 1 : 0;
-            // tiny “press” nudge
-            interactBtn.pos = interactPos.add(vec2(0, isDown ? 1 : 0));
-        }
-
-        interactBtn.onClick(() => {
-            setInteractDown(true);
-            interact();
-            wait(0.08, () => setInteractDown(false));
-        });
-
-        // Context awareness: pulse when something is in range
-        onUpdate(() => {
-            // player near an interactable?
-            const near = player.getCollisions()
-                .some(c => c.target.is?.("door") || c.target.is?.("chest"));
-
-            interactBtn.canUse = near;
-
-            // dim when not usable, pulse when usable
-            const pulse = 3 * (1 + (near ? 0.03 * Math.sin(time() * 8) : 0));
-            interactBtn.scale = vec2(pulse);
-            interactBtn.color = near ? rgb(255, 255, 255) : rgb(180, 180, 180);
-        });
-
-
-        // --- hold state (mouse + touch unified by Kaboom) ---
-        let pointerHeld = false;
-        onMouseDown(() => { pointerHeld = true; });
-        onMouseRelease(() => { pointerHeld = false; });
-
-        // which directions are currently held
-        const held = new Set();
-
-        // map directions to sprite frames
-        const ARROW_FRAMES = {
-            up: 0,
-            down: 1,
-            right: 2,
-            left: 3,
-        };
-
-        // helper to wire a button to a direction
-        function bindHold(btn, dir) {
-            btn.onHoverUpdate(() => {
-                setCursor("pointer");
-                if (pointerHeld) {
-                    held.add(dir);
-                    btn.use(sprite("arrow_button_action", { frame: ARROW_FRAMES[dir] }));
+            // TODO: debug lose health on "h"
+            onKeyPress("h", () => {
+                if (currentHealth > 0) {
+                    currentHealth--;
+                    updateHearts();
                 }
             });
 
-            btn.onHoverEnd(() => {
-                held.delete(dir);
-                btn.use(sprite("arrow_button", { frame: ARROW_FRAMES[dir] }));
+            // TODO: debug health restore on "j"
+            onKeyPress("j", () => {
+                if (currentHealth < MAX_HEALTH) {
+                    currentHealth++;
+                    updateHearts();
+                }
             });
 
-            onMouseRelease(() => {
-                held.delete(dir);
-                //btn.use(sprite("arrow_button", { frame: ARROW_FRAMES[dir] }));
-            });
-        }
+            onKeyPress("space", interact);
 
-        bindHold(up_btn, "up");
-        bindHold(down_btn, "down");
-        bindHold(left_btn, "left");
-        bindHold(right_btn, "right");
-        bindHold(interact_btn, "interact");
+            const up_btn = add([
+                sprite("arrow_button", { frame: 0 }),
+                scale(2),
+                pos(46, 190),
+                anchor("center"),
+                fixed(),
+                area()
+            ]);
+            const down_btn = add([sprite("arrow_button", { frame: 1 }), scale(2), pos(46, 240), anchor("center"), fixed(), area()]);
+            const left_btn = add([sprite("arrow_button", { frame: 3 }), scale(2), pos(20, 215), anchor("center"), fixed(), area()]);
+            const right_btn = add([sprite("arrow_button", { frame: 2 }), scale(2), pos(72, 215), anchor("center"), fixed(), area()]);
+            const interact_btn = add([text("x"), scale(0), pos(220, 221), anchor("center"), fixed(), area()]);
 
-        // safety: releasing anywhere clears all holds
-        function releaseAll() { held.clear(); }
-        window.addEventListener("blur", releaseAll, { passive: true });
-        onMouseRelease(releaseAll);
+            // ---- Interact button (sprite) ----
+            const interactPos = vec2(width() - 22 * 3, height() - 22 * 3);
+            const interactBtn = add([
+                sprite("interact_button", { frame: 0 }), // 0 idle, 1 pressed in your atlas
+                pos(interactPos),
+                fixed(),
+                area(),
+                { canUse: false },
+            ]);
 
-        const SPEED = 120
-        onUpdate(() => {
-            let x = 0, y = 0;
-
-            // buttons
-            if (held.has("left")) x -= 1;
-            if (held.has("right")) x += 1;
-            if (held.has("up")) y -= 1;
-            if (held.has("down")) y += 1;
-
-            // keyboard (WASD)
-            if (isKeyDown("a")) x -= 1;
-            if (isKeyDown("d")) x += 1;
-            if (isKeyDown("w")) y -= 1;
-            if (isKeyDown("s")) y += 1;
-
-            const v = vec2(x, y);
-            if (v.len() > 0) {
-                const u = v.unit();
-                if (u.x < 0) player.flipX = true;
-                if (u.x > 0) player.flipX = false;
-                player.move(u.scale(SPEED));
-                if (player.curAnim() !== "run") player.play("run");
-            } else if (player.curAnim() !== "idle") {
-                player.play("idle");
+            // Press visual + call your interact()
+            function setInteractDown(isDown) {
+                interactBtn.frame = isDown ? 1 : 0;
+                // tiny “press” nudge
+                interactBtn.pos = interactPos.add(vec2(0, isDown ? 1 : 0));
             }
 
-            camPos(player.pos);
-        });
+            interactBtn.onClick(() => {
+                setInteractDown(true);
+                interact();
+                wait(0.08, () => setInteractDown(false));
+            });
 
-        player.onPhysicsResolve(() => camPos(player.pos));
+            // Context awareness: pulse when something is in range
+            onUpdate(() => {
+                // player near an interactable?
+                const near = player.getCollisions()
+                    .some(c => c.target.is?.("door") || c.target.is?.("chest"));
 
-        ;["a", "d", "w", "s"].forEach((key) => {
-            onKeyPress(key, () => {
-                player.play("run")
+                interactBtn.canUse = near;
+
+                // dim when not usable, pulse when usable
+                const pulse = 3 * (1 + (near ? 0.03 * Math.sin(time() * 8) : 0));
+                interactBtn.scale = vec2(pulse);
+                interactBtn.color = near ? rgb(255, 255, 255) : rgb(180, 180, 180);
+            });
+
+
+            // --- hold state (mouse + touch unified by Kaboom) ---
+            let pointerHeld = false;
+            onMouseDown(() => { pointerHeld = true; });
+            onMouseRelease(() => { pointerHeld = false; });
+
+            // which directions are currently held
+            const held = new Set();
+
+            // map directions to sprite frames
+            const ARROW_FRAMES = {
+                up: 0,
+                down: 1,
+                right: 2,
+                left: 3,
+            };
+
+            // helper to wire a button to a direction
+            function bindHold(btn, dir) {
+                btn.onHoverUpdate(() => {
+                    setCursor("pointer");
+                    if (pointerHeld) {
+                        held.add(dir);
+                        btn.use(sprite("arrow_button_action", { frame: ARROW_FRAMES[dir] }));
+                    }
+                });
+
+                btn.onHoverEnd(() => {
+                    held.delete(dir);
+                    btn.use(sprite("arrow_button", { frame: ARROW_FRAMES[dir] }));
+                });
+
+                onMouseRelease(() => {
+                    held.delete(dir);
+                    //btn.use(sprite("arrow_button", { frame: ARROW_FRAMES[dir] }));
+                });
+            }
+
+            bindHold(up_btn, "up");
+            bindHold(down_btn, "down");
+            bindHold(left_btn, "left");
+            bindHold(right_btn, "right");
+            bindHold(interact_btn, "interact");
+
+            // safety: releasing anywhere clears all holds
+            function releaseAll() { held.clear(); }
+            window.addEventListener("blur", releaseAll, { passive: true });
+            onMouseRelease(releaseAll);
+
+            const SPEED = 120
+            onUpdate(() => {
+                let x = 0, y = 0;
+
+                // buttons
+                if (held.has("left")) x -= 1;
+                if (held.has("right")) x += 1;
+                if (held.has("up")) y -= 1;
+                if (held.has("down")) y += 1;
+
+                // keyboard (WASD)
+                if (isKeyDown("a")) x -= 1;
+                if (isKeyDown("d")) x += 1;
+                if (isKeyDown("w")) y -= 1;
+                if (isKeyDown("s")) y += 1;
+
+                const v = vec2(x, y);
+                if (v.len() > 0) {
+                    const u = v.unit();
+                    if (u.x < 0) player.flipX = true;
+                    if (u.x > 0) player.flipX = false;
+                    player.move(u.scale(SPEED));
+                    if (player.curAnim() !== "run") player.play("run");
+                } else if (player.curAnim() !== "idle") {
+                    player.play("idle");
+                }
+
+                camPos(player.pos);
+            });
+
+            player.onPhysicsResolve(() => camPos(player.pos));
+
+            ;["a", "d", "w", "s"].forEach((key) => {
+                onKeyPress(key, () => {
+                    player.play("run")
+                })
+                onKeyRelease(key, () => {
+                    if (
+                        !isKeyDown("a")
+                        && !isKeyDown("d")
+                        && !isKeyDown("w")
+                        && !isKeyDown("s")
+                    ) {
+                        player.play("idle")
+                    }
+                })
             })
-            onKeyRelease(key, () => {
-                if (
-                    !isKeyDown("a")
-                    && !isKeyDown("d")
-                    && !isKeyDown("w")
-                    && !isKeyDown("s")
-                ) {
-                    player.play("idle")
-                }
-            })
-        })
+        });
+
+        // Boot to splash
+        go("title");
     </script>
 </body>
 </html>
