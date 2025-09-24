@@ -327,19 +327,19 @@
   
         const up_btn = add([
             sprite("arrow_button", { frame: 0 }),
-            pos(32, 200),
+            scale(2),
+            pos(46, 190),
             anchor("center"),
             fixed(),
             area()
         ]);
-        const down_btn = add([sprite("arrow_button", { frame: 1 }), , pos(32, 240), anchor("center"), fixed(), area()]);
-        const left_btn = add([sprite("arrow_button", { frame: 3 }), , pos(11, 221), anchor("center"), fixed(), area()]);
-        const right_btn = add([sprite("arrow_button", { frame: 2 }), , pos(52, 221), anchor("center"), fixed(), area()]);
+        const down_btn = add([sprite("arrow_button", { frame: 1 }), scale(2), pos(46, 240), anchor("center"), fixed(), area()]);
+        const left_btn = add([sprite("arrow_button", { frame: 3 }), scale(2), pos(20, 215), anchor("center"), fixed(), area()]);
+        const right_btn = add([sprite("arrow_button", { frame: 2 }), scale(2), pos(72, 215), anchor("center"), fixed(), area()]);
         const interact_btn = add([text("x"), scale(0), pos(220, 221), anchor("center"), fixed(), area()]);
 
         // ---- Interact button (sprite) ----
-        const interactPos = vec2(width() - 16 * 3, height() - 15 * 3);
-
+        const interactPos = vec2(width() - 22 * 3, height() - 22 * 3);
         const interactBtn = add([
             sprite("interact_button", { frame: 0 }), // 0 idle, 1 pressed in your atlas
             pos(interactPos),
@@ -357,7 +357,7 @@
 
         interactBtn.onClick(() => {
             setInteractDown(true);
-            interact();              // your existing interact logic
+            interact();
             wait(0.08, () => setInteractDown(false));
         });
 
@@ -370,7 +370,7 @@
             interactBtn.canUse = near;
 
             // dim when not usable, pulse when usable
-            const pulse = 2 * (1 + (near ? 0.03 * Math.sin(time() * 8) : 0));
+            const pulse = 3 * (1 + (near ? 0.03 * Math.sin(time() * 8) : 0));
             interactBtn.scale = vec2(pulse);
             interactBtn.color = near ? rgb(255, 255, 255) : rgb(180, 180, 180);
         });
@@ -384,24 +384,35 @@
         // which directions are currently held
         const held = new Set();
 
+        // map directions to sprite frames
+        const ARROW_FRAMES = {
+            up: 0,
+            down: 1,
+            right: 2,
+            left: 3,
+        };
+
         // helper to wire a button to a direction
         function bindHold(btn, dir) {
             btn.onHoverUpdate(() => {
                 setCursor("pointer");
                 if (pointerHeld) {
                     held.add(dir);
-                    btn.color = rgb(255, 255, 0);
+                    btn.use(sprite("arrow_button_action", { frame: ARROW_FRAMES[dir] }));
                 }
             });
+
             btn.onHoverEnd(() => {
                 held.delete(dir);
-                btn.color = rgb(255, 255, 255);
+                btn.use(sprite("arrow_button", { frame: ARROW_FRAMES[dir] }));
             });
+
             onMouseRelease(() => {
                 held.delete(dir);
-                btn.color = rgb(255, 255, 255);
+                //btn.use(sprite("arrow_button", { frame: ARROW_FRAMES[dir] }));
             });
         }
+
         bindHold(up_btn, "up");
         bindHold(down_btn, "down");
         bindHold(left_btn, "left");
